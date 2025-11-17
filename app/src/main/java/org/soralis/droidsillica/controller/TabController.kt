@@ -11,16 +11,16 @@ import org.soralis.droidsillica.model.TabContent
  */
 class TabController {
 
-    private val controllers = listOf(
-        ReadController(),
-        WriteController(),
-        ManualController(),
-        HistoryController()
+    private val tabContents = listOf(
+        ReadController().getContent(),
+        WriteController().getContent(),
+        ManualController().getContent(),
+        HistoryController().getContent()
     )
 
-    fun getTabCount(): Int = controllers.size
+    fun getTabCount(): Int = tabContents.size
 
-    fun getTab(position: Int): TabContent = controllers[position].getContent()
+    fun getTab(position: Int): TabContent = tabContents[position]
 
     fun getTitle(position: Int): String = getTab(position).title
 }

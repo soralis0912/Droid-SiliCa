@@ -23,7 +23,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
-                tools:text="Read" />
+                tools:text="History" />
 
             <TextView
                 android:id="@+id/tabDescription"
@@ -31,7 +31,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-                tools:text="Details about how to read data" />
+                tools:text="Audit trail of user edits and events." />
 
             <LinearLayout
                 android:id="@+id/actionList"

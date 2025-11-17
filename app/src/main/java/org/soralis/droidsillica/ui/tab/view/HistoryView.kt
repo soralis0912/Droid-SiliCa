@@ -1,5 +1,5 @@
 package org.soralis.droidsillica.ui.tab.view
 
-import org.soralis.droidsillica.databinding.FragmentTabBinding
+import org.soralis.droidsillica.databinding.FragmentTabHistoryBinding
 
-class HistoryView(binding: FragmentTabBinding) : BaseTabView(binding)
+class HistoryView(binding: FragmentTabHistoryBinding) : BaseTabView(binding.toTabUiComponents())

@@ -1,9 +1,7 @@
 plugins {
-    id("com.android.application") 
-    id("org.jetbrains.kotlin.android") 
+    id("com.android.application") version "8.3.1"
+    id("org.jetbrains.kotlin.android") version "1.9.23"
 }
-apply(plugin = "com.android.application")
-apply(plugin = "org.jetbrains.kotlin.android")
 
 android {
     namespace = "org.soralis.droidsillica"

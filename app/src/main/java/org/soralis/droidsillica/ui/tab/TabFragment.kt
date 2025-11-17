@@ -6,7 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
-import org.soralis.droidsillica.databinding.FragmentTabBinding
+import org.soralis.droidsillica.databinding.FragmentTabHistoryBinding
+import org.soralis.droidsillica.databinding.FragmentTabManualBinding
+import org.soralis.droidsillica.databinding.FragmentTabReadBinding
+import org.soralis.droidsillica.databinding.FragmentTabWriteBinding
 import org.soralis.droidsillica.model.TabContent
 import org.soralis.droidsillica.ui.tab.view.BaseTabView
 import org.soralis.droidsillica.ui.tab.view.HistoryView
@@ -14,11 +17,14 @@ import org.soralis.droidsillica.ui.tab.view.ManualView
 import org.soralis.droidsillica.ui.tab.view.ReadView
 import org.soralis.droidsillica.ui.tab.view.TabView
 import org.soralis.droidsillica.ui.tab.view.WriteView
+import org.soralis.droidsillica.ui.tab.view.toTabUiComponents
 
 class TabFragment : Fragment() {
 
-    private var _binding: FragmentTabBinding? = null
-    private val binding get() = _binding!!
+    private var _readBinding: FragmentTabReadBinding? = null
+    private var _writeBinding: FragmentTabWriteBinding? = null
+    private var _manualBinding: FragmentTabManualBinding? = null
+    private var _historyBinding: FragmentTabHistoryBinding? = null
     private var tabView: TabView? = null
 
     override fun onCreateView(
@@ -26,8 +32,24 @@ class TabFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentTabBinding.inflate(inflater, container, false)
-        return binding.root
+        val key = requireArguments().getString(ARG_KEY).orEmpty()
+        return when (key) {
+            KEY_READ -> FragmentTabReadBinding.inflate(inflater, container, false).also {
+                _readBinding = it
+            }.root
+            KEY_WRITE -> FragmentTabWriteBinding.inflate(inflater, container, false).also {
+                _writeBinding = it
+            }.root
+            KEY_MANUAL -> FragmentTabManualBinding.inflate(inflater, container, false).also {
+                _manualBinding = it
+            }.root
+            KEY_HISTORY -> FragmentTabHistoryBinding.inflate(inflater, container, false).also {
+                _historyBinding = it
+            }.root
+            else -> FragmentTabWriteBinding.inflate(inflater, container, false).also {
+                _writeBinding = it
+            }.root
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -52,15 +74,24 @@ class TabFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         tabView = null
-        _binding = null
+        _readBinding = null
+        _writeBinding = null
+        _manualBinding = null
+        _historyBinding = null
     }
 
     private fun createTabView(key: String): TabView = when (key) {
-        "read" -> ReadView(binding)
-        "write" -> WriteView(binding)
-        "manual" -> ManualView(binding)
-        "history" -> HistoryView(binding)
-        else -> BaseTabView(binding)
+        KEY_READ -> ReadView(_readBinding ?: error("Missing read binding"))
+        KEY_WRITE -> WriteView(_writeBinding ?: error("Missing write binding"))
+        KEY_MANUAL -> ManualView(_manualBinding ?: error("Missing manual binding"))
+        KEY_HISTORY -> HistoryView(_historyBinding ?: error("Missing history binding"))
+        else -> BaseTabView(
+            _writeBinding?.toTabUiComponents()
+                ?: _manualBinding?.toTabUiComponents()
+                ?: _historyBinding?.toTabUiComponents()
+                ?: _readBinding?.toTabUiComponents()
+                ?: error("No binding available for $key tab")
+        )
     }
 
     companion object {
@@ -68,6 +99,10 @@ class TabFragment : Fragment() {
         private const val ARG_TITLE = "arg_title"
         private const val ARG_DESCRIPTION = "arg_description"
         private const val ARG_ACTIONS = "arg_actions"
+        private const val KEY_READ = "read"
+        private const val KEY_WRITE = "write"
+        private const val KEY_MANUAL = "manual"
+        private const val KEY_HISTORY = "history"
 
         fun newInstance(content: TabContent): TabFragment = TabFragment().apply {
             arguments = bundleOf(

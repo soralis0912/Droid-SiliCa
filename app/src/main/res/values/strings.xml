@@ -1,4 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Droid SilliCa</string>
+    <string name="read_controls_title">Read Options</string>
+    <string name="read_controls_description">Select which SiliCa data blocks to capture.</string>
+    <string name="read_option_last_error">Last error command</string>
+    <string name="read_option_block_e0">System block 0xE0</string>
+    <string name="read_option_block_e1">System block 0xE1</string>
+    <string name="read_action_start">Start Reading</string>
+    <string name="read_action_stop">Stop</string>
+    <string name="read_result_label">Result</string>
+    <string name="read_result_placeholder">Awaiting NFC tag...</string>
+    <string name="read_result_need_selection">Select at least one item to read.</string>
+    <string name="read_result_starting">Reading: %1$s\nPlease tap a SiliCa card.</string>
+    <string name="read_result_stopped">Reading stopped.</string>
 </resources>
