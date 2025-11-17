@@ -12,26 +12,31 @@ import java.util.Locale
 import org.soralis.droidsillica.model.TabContent
 
 /**
- * Mirrors the behavior of the legacy read.py script by issuing a "Read Without Encryption" (0x06)
- * command against the SiliCa system service (0xFFFF) and exposing the parsed last error command.
+ * Mirrors the behavior of the legacy read.py script by issuing FeliCa commands to inspect the
+ * SiliCa system service (0xFFFF) and expose the parsed last error command and metadata.
  */
 class ReadController {
 
     interface Listener {
         fun onWaitingForTag()
-        fun onReadSuccess(result: LastErrorCommandResult)
+        fun onReadSuccess(result: ReadResult)
         fun onReadError(message: String)
         fun onReadingStopped()
         fun onNfcUnavailable()
     }
 
-    data class LastErrorCommandResult(
+    data class ReadResult(
         val idm: ByteArray,
+        val pmm: ByteArray,
+        val systemCodes: List<Int>,
+        val serviceCodes: List<Int>,
         val statusFlag1: Int,
         val statusFlag2: Int,
         val blockData: ByteArray,
         val lastErrorCommand: ByteArray
     ) {
+        val formattedIdm: String = idm.toLegacyHexString()
+        val formattedPmm: String = pmm.toLegacyHexString()
         val formattedCommand: String = lastErrorCommand.toLegacyHexString()
     }
 
@@ -42,6 +47,8 @@ class ReadController {
     private var readerModeEnabled = false
     private var activityRef: WeakReference<Activity>? = null
     private var sessionListener: Listener? = null
+    private var readBlocksRequested: Boolean = true
+    private var pendingBlockNumbers: List<Int> = emptyList()
 
     fun getContent(): TabContent = TabContent(
         key = KEY,
@@ -55,36 +62,19 @@ class ReadController {
     )
 
     /**
-     * Connects to a FeliCa tag and retrieves the system block that contains the last error command.
-     */
-    @Throws(ReadException::class)
-    fun readLastErrorCommand(tag: Tag, timeoutMillis: Int = DEFAULT_TIMEOUT_MS): LastErrorCommandResult {
-        val nfcF = NfcF.get(tag) ?: throw ReadException("Tag is not a FeliCa/NfcF tag")
-        try {
-            nfcF.connect()
-            nfcF.timeout = timeoutMillis
-            val response = nfcF.transceive(buildReadCommand(tag.id))
-            return parseReadResponse(response)
-        } catch (e: IOException) {
-            throw ReadException("Unable to read the SiliCa system block", e)
-        } finally {
-            try {
-                nfcF.close()
-            } catch (_: IOException) {
-                // Ignored – the link is already closed/closing.
-            }
-        }
-    }
-
-    /**
      * Starts NFC reader mode and waits for a FeliCa tag. Results are delivered to [Listener].
      */
-    fun startReading(activity: Activity, _selectedOptions: List<String>, listener: Listener) {
+    fun startReading(activity: Activity, blockNumbers: List<Int>, listener: Listener) {
         sessionListener = listener
         activityRef = WeakReference(activity)
+        readBlocksRequested = blockNumbers.isNotEmpty()
+        pendingBlockNumbers = blockNumbers
         val adapter = nfcAdapter ?: NfcAdapter.getDefaultAdapter(activity).also { nfcAdapter = it }
         if (adapter == null) {
             listener.onNfcUnavailable()
+            sessionListener = null
+            readBlocksRequested = true
+            pendingBlockNumbers = emptyList()
             return
         }
         adapter.enableReaderMode(
@@ -101,9 +91,55 @@ class ReadController {
         stopReaderModeInternal(notifyStopped = true)
     }
 
-    private fun buildReadCommand(idm: ByteArray): ByteArray {
+    /**
+     * Connects to a FeliCa tag and retrieves both metadata (system/service codes) and, optionally,
+     * the system blocks that contain the last error command.
+     */
+    @Throws(ReadException::class)
+    fun readLastErrorCommand(
+        tag: Tag,
+        timeoutMillis: Int = DEFAULT_TIMEOUT_MS,
+        readBlocks: Boolean = true
+    ): ReadResult {
+        val nfcF = NfcF.get(tag) ?: throw ReadException("Tag is not a FeliCa/NfcF tag")
+        try {
+            nfcF.connect()
+            nfcF.timeout = timeoutMillis
+            val idm = tag.id.copyOf()
+            val pmm = nfcF.manufacturer.copyOf()
+            val systemCodes = requestSystemCodes(nfcF, idm)
+            val serviceCodes = requestServiceCodes(nfcF, idm)
+            if (!readBlocks) {
+                return ReadResult(
+                    idm = idm,
+                    pmm = pmm,
+                    systemCodes = systemCodes,
+                    serviceCodes = serviceCodes,
+                    statusFlag1 = 0,
+                    statusFlag2 = 0,
+                    blockData = ByteArray(0),
+                    lastErrorCommand = ByteArray(0)
+                )
+            }
+            val response = nfcF.transceive(buildReadCommand(idm, pendingBlockNumbers))
+            return parseReadResponse(response, pmm, systemCodes, serviceCodes)
+        } catch (e: IOException) {
+            throw ReadException("Unable to read the SiliCa system block", e)
+        } finally {
+            try {
+                nfcF.close()
+            } catch (_: IOException) {
+                // Ignored – the link is already closed/closing.
+            }
+        }
+    }
+
+    private fun buildReadCommand(idm: ByteArray, blockNumbers: List<Int>): ByteArray {
         require(idm.size == IDM_LENGTH) { "Unexpected IDm length: ${idm.size}" }
-        val commandSize = 1 + 1 + idm.size + 1 + SERVICE_CODE_LIST.size * SERVICE_CODE_SIZE + 1 + BLOCK_LIST.size
+        val blocks = blockNumbers.ifEmpty { DEFAULT_BLOCKS }
+        val blockList = buildBlockList(blocks)
+        val commandSize =
+            1 + 1 + idm.size + 1 + SERVICE_CODE_LIST.size * SERVICE_CODE_SIZE + 1 + blockList.size
         val buffer = ByteArray(commandSize)
         var offset = 0
         buffer[offset++] = commandSize.toByte()
@@ -115,13 +151,29 @@ class ReadController {
             buffer[offset++] = (service and 0xFF).toByte()
             buffer[offset++] = ((service shr 8) and 0xFF).toByte()
         }
-        val blockCount = BLOCK_LIST.size / BLOCK_LIST_ELEMENT_SIZE
+        val blockCount = blockList.size / BLOCK_LIST_ELEMENT_SIZE
         buffer[offset++] = blockCount.toByte()
-        BLOCK_LIST.copyInto(buffer, offset)
+        blockList.copyInto(buffer, offset)
         return buffer
     }
 
-    private fun parseReadResponse(response: ByteArray): LastErrorCommandResult {
+    private fun buildBlockList(blockNumbers: List<Int>): ByteArray {
+        val blockList = ByteArray(blockNumbers.size * BLOCK_LIST_ELEMENT_SIZE)
+        var offset = 0
+        blockNumbers.forEach { number ->
+            val sanitized = number.coerceIn(0, 0xFF)
+            blockList[offset++] = BLOCK_LIST_ACCESS_MODE
+            blockList[offset++] = sanitized.toByte()
+        }
+        return blockList
+    }
+
+    private fun parseReadResponse(
+        response: ByteArray,
+        pmm: ByteArray,
+        systemCodes: List<Int>,
+        serviceCodes: List<Int>
+    ): ReadResult {
         if (response.size < RESPONSE_HEADER_SIZE) {
             throw ReadException("Response too short: ${response.size} bytes")
         }
@@ -156,8 +208,11 @@ class ReadController {
         } else {
             ByteArray(0)
         }
-        return LastErrorCommandResult(
+        return ReadResult(
             idm = idm,
+            pmm = pmm,
+            systemCodes = systemCodes,
+            serviceCodes = serviceCodes,
             statusFlag1 = statusFlag1,
             statusFlag2 = statusFlag2,
             blockData = blockData,
@@ -167,7 +222,7 @@ class ReadController {
 
     private val readerCallback = NfcAdapter.ReaderCallback { tag ->
         try {
-            val result = readLastErrorCommand(tag)
+            val result = readLastErrorCommand(tag, readBlocks = readBlocksRequested)
             mainHandler.post {
                 sessionListener?.onReadSuccess(result)
                 stopReaderModeInternal(notifyStopped = false)
@@ -189,9 +244,71 @@ class ReadController {
             }
         }
         readerModeEnabled = false
+        readBlocksRequested = true
+        pendingBlockNumbers = emptyList()
         if (notifyStopped) {
             sessionListener?.onReadingStopped()
         }
+        sessionListener = null
+    }
+
+    private fun requestSystemCodes(nfcF: NfcF, idm: ByteArray): List<Int> {
+        val command = ByteArray(1 + 1 + IDM_LENGTH)
+        command[0] = command.size.toByte()
+        command[1] = COMMAND_REQUEST_SYSTEM_CODE
+        System.arraycopy(idm, 0, command, 2, IDM_LENGTH)
+        val response = try {
+            nfcF.transceive(command)
+        } catch (_: IOException) {
+            return emptyList()
+        }
+        if (response.size < RESPONSE_SYSTEM_CODE_HEADER || response[1] != RESPONSE_SYSTEM_CODE) {
+            return emptyList()
+        }
+        val statusFlag1 = response[10].toPositiveInt()
+        val statusFlag2 = response[11].toPositiveInt()
+        if (statusFlag1 != 0 || statusFlag2 != 0) {
+            return emptyList()
+        }
+        val codeCount = response[12].toPositiveInt()
+        val codes = mutableListOf<Int>()
+        var offset = 13
+        repeat(codeCount) {
+            if (offset + 1 >= response.size) return codes
+            val code = response[offset].toPositiveInt() or (response[offset + 1].toPositiveInt() shl 8)
+            codes += code
+            offset += 2
+        }
+        return codes
+    }
+
+    private fun requestServiceCodes(nfcF: NfcF, idm: ByteArray): List<Int> {
+        val codes = mutableListOf<Int>()
+        for (order in 0 until MAX_SERVICE_SEARCH) {
+            val command = ByteArray(1 + 1 + IDM_LENGTH + 2)
+            command[0] = command.size.toByte()
+            command[1] = COMMAND_SEARCH_SERVICE_CODE
+            System.arraycopy(idm, 0, command, 2, IDM_LENGTH)
+            command[10] = (order and 0xFF).toByte()
+            command[11] = ((order shr 8) and 0xFF).toByte()
+            val response = try {
+                nfcF.transceive(command)
+            } catch (_: IOException) {
+                break
+            }
+            if (response.size < RESPONSE_SERVICE_CODE_SIZE || response[1] != RESPONSE_SERVICE_CODE) {
+                break
+            }
+            val statusFlag1 = response[10].toPositiveInt()
+            val statusFlag2 = response[11].toPositiveInt()
+            if (statusFlag1 != 0 || statusFlag2 != 0) {
+                break
+            }
+            val serviceCode =
+                response[12].toPositiveInt() or (response[13].toPositiveInt() shl 8)
+            codes += serviceCode
+        }
+        return codes
     }
 
     private fun Byte.toPositiveInt(): Int = toInt() and 0xFF
@@ -204,13 +321,18 @@ class ReadController {
         private const val BLOCK_LIST_ELEMENT_SIZE = 2
         private const val BLOCK_SIZE = 16
         private const val RESPONSE_HEADER_SIZE = 13
+        private const val RESPONSE_SYSTEM_CODE_HEADER = 13
+        private const val RESPONSE_SERVICE_CODE_SIZE = 14
+        private const val MAX_SERVICE_SEARCH = 32
         private val COMMAND_READ = 0x06.toByte()
         private val RESPONSE_READ = 0x07.toByte()
+        private val COMMAND_REQUEST_SYSTEM_CODE = 0x0C.toByte()
+        private val RESPONSE_SYSTEM_CODE = 0x0D.toByte()
+        private val COMMAND_SEARCH_SERVICE_CODE = 0x0A.toByte()
+        private val RESPONSE_SERVICE_CODE = 0x0B.toByte()
         private val SERVICE_CODE_LIST = intArrayOf(0xFFFF)
-        private val BLOCK_LIST = byteArrayOf(
-            0x80.toByte(), 0xE0.toByte(),
-            0x80.toByte(), 0xE1.toByte()
-        )
+        private val DEFAULT_BLOCKS = listOf(0xE0, 0xE1)
+        private val BLOCK_LIST_ACCESS_MODE = 0x80.toByte()
     }
 }
 

@@ -110,9 +110,9 @@ class TabFragment : Fragment() {
     }
 
     private val readCallbacks = object : ReadView.Callbacks {
-        override fun onStartReading(selectedOptions: List<String>) {
+        override fun onStartReading(blockNumbers: List<Int>) {
             val activity = activity ?: return
-            readController.startReading(activity, selectedOptions, readListener)
+            readController.startReading(activity, blockNumbers, readListener)
         }
 
         override fun onStopReading() {
@@ -125,12 +125,28 @@ class TabFragment : Fragment() {
             readView?.showResultMessage(getString(R.string.read_result_waiting_for_tag))
         }
 
-        override fun onReadSuccess(result: ReadController.LastErrorCommandResult) {
+        override fun onReadSuccess(result: ReadController.ReadResult) {
+            val commandText = if (result.lastErrorCommand.isNotEmpty()) {
+                result.formattedCommand
+            } else {
+                getString(R.string.read_result_no_blocks)
+            }
+            val systemCodesText = formatCodeList(
+                result.systemCodes,
+                getString(R.string.read_result_no_system_codes)
+            )
+            val serviceCodesText = formatCodeList(
+                result.serviceCodes,
+                getString(R.string.read_result_no_service_codes)
+            )
             readView?.showResultMessage(
                 getString(
                     R.string.read_result_success,
-                    result.idm.toSpacedHex(),
-                    result.formattedCommand
+                    result.formattedIdm,
+                    result.formattedPmm,
+                    systemCodesText,
+                    serviceCodesText,
+                    commandText
                 )
             )
             readView?.setReadingInProgress(false)
@@ -151,8 +167,12 @@ class TabFragment : Fragment() {
         }
     }
 
-    private fun ByteArray.toSpacedHex(): String =
-        joinToString(" ") { byte -> String.format(Locale.US, "%02X", byte.toInt() and 0xFF) }
+    private fun formatCodeList(codes: List<Int>, emptyText: String): String {
+        if (codes.isEmpty()) return emptyText
+        return codes.joinToString(", ") { code ->
+            String.format(Locale.US, "0x%04X", code)
+        }
+    }
 
     companion object {
         private const val ARG_KEY = "arg_key"

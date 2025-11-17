@@ -69,31 +69,34 @@
                     android:text="@string/read_controls_description"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
 
-                <LinearLayout
+                <CheckBox
+                    android:id="@+id/readIncludeBlocksCheckbox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
-                    android:orientation="vertical">
+                    android:text="@string/read_option_include_blocks" />
 
-                    <CheckBox
-                        android:id="@+id/readOptionLastError"
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/readBlockInputLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:checked="true"
-                        android:text="@string/read_option_last_error" />
+                        android:layout_marginTop="12dp"
+                        android:hint="@string/read_block_input_hint">
 
-                    <CheckBox
-                        android:id="@+id/readOptionBlockE0"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/read_option_block_e0" />
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/readBlockInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="text" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
-                    <CheckBox
-                        android:id="@+id/readOptionBlockE1"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="@string/read_option_block_e1" />
-                </LinearLayout>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/read_block_input_helper"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
 
                 <LinearLayout
                     android:layout_width="match_parent"

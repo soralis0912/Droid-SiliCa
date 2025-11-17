@@ -10,7 +10,7 @@ class ReadView(
 ) : BaseTabView(readBinding.toTabUiComponents()) {
 
     interface Callbacks {
-        fun onStartReading(selectedOptions: List<String>)
+        fun onStartReading(blockNumbers: List<Int>)
         fun onStopReading()
     }
 
@@ -27,18 +27,18 @@ class ReadView(
     }
 
     private fun handleStart() {
-        val selected = selectedOptions()
-        if (selected.isEmpty()) {
-            readBinding.readResultText.text =
-                readBinding.root.context.getString(R.string.read_result_need_selection)
-            return
+        val blockNumbers = selectedBlockNumbers() ?: return
+        val context = readBinding.root.context
+        readBinding.readResultText.text = if (blockNumbers.isEmpty()) {
+            context.getString(R.string.read_result_starting_basic)
+        } else {
+            context.getString(
+                R.string.read_result_starting,
+                blockNumbers.joinToString(", ")
+            )
         }
-        readBinding.readResultText.text = readBinding.root.context.getString(
-            R.string.read_result_starting,
-            selected.joinToString(", ")
-        )
         setReadingInProgress(true)
-        callbacks?.onStartReading(selected)
+        callbacks?.onStartReading(blockNumbers)
     }
 
     private fun handleStop() {
@@ -48,13 +48,33 @@ class ReadView(
         callbacks?.onStopReading()
     }
 
-    private fun selectedOptions(): List<String> {
-        val options = listOf(
-            readBinding.readOptionLastError,
-            readBinding.readOptionBlockE0,
-            readBinding.readOptionBlockE1
-        )
-        return options.filter { it.isChecked }.map { it.text.toString() }
+    private fun selectedBlockNumbers(): List<Int>? {
+        if (!readBinding.readIncludeBlocksCheckbox.isChecked) {
+            return emptyList()
+        }
+        val manualBlocks = parseManualBlockInput() ?: return null
+        return manualBlocks.distinct()
+    }
+
+    private fun parseManualBlockInput(): List<Int>? {
+        val text = readBinding.readBlockInput.text?.toString().orEmpty()
+        if (text.isBlank()) {
+            return emptyList()
+        }
+        val manualBlocks = mutableListOf<Int>()
+        val tokens = text.split(',', ' ', '\n', '\t')
+        tokens.forEach { token ->
+            val value = token.trim()
+            if (value.isEmpty()) return@forEach
+            val blockNumber = value.toIntOrNull()
+            if (blockNumber == null || blockNumber !in 0..255) {
+                readBinding.readResultText.text =
+                    readBinding.root.context.getString(R.string.read_block_input_invalid, value)
+                return null
+            }
+            manualBlocks += blockNumber
+        }
+        return manualBlocks
     }
 
     fun setReadingInProgress(inProgress: Boolean) {
