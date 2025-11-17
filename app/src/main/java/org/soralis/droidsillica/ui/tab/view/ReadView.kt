@@ -4,8 +4,15 @@ import org.soralis.droidsillica.R
 import org.soralis.droidsillica.databinding.FragmentTabReadBinding
 import org.soralis.droidsillica.model.TabContent
 
-class ReadView(private val readBinding: FragmentTabReadBinding) :
-    BaseTabView(readBinding.toTabUiComponents()) {
+class ReadView(
+    private val readBinding: FragmentTabReadBinding,
+    private val callbacks: Callbacks? = null
+) : BaseTabView(readBinding.toTabUiComponents()) {
+
+    interface Callbacks {
+        fun onStartReading(selectedOptions: List<String>)
+        fun onStopReading()
+    }
 
     init {
         readBinding.readStartButton.setOnClickListener { handleStart() }
@@ -14,7 +21,7 @@ class ReadView(private val readBinding: FragmentTabReadBinding) :
 
     override fun render(content: TabContent) {
         super.render(content)
-        readBinding.readStopButton.isEnabled = false
+        setReadingInProgress(false)
         readBinding.readResultText.text =
             readBinding.root.context.getString(R.string.read_result_placeholder)
     }
@@ -30,13 +37,15 @@ class ReadView(private val readBinding: FragmentTabReadBinding) :
             R.string.read_result_starting,
             selected.joinToString(", ")
         )
-        readBinding.readStopButton.isEnabled = true
+        setReadingInProgress(true)
+        callbacks?.onStartReading(selected)
     }
 
     private fun handleStop() {
         readBinding.readResultText.text =
             readBinding.root.context.getString(R.string.read_result_stopped)
-        readBinding.readStopButton.isEnabled = false
+        setReadingInProgress(false)
+        callbacks?.onStopReading()
     }
 
     private fun selectedOptions(): List<String> {
@@ -46,5 +55,14 @@ class ReadView(private val readBinding: FragmentTabReadBinding) :
             readBinding.readOptionBlockE1
         )
         return options.filter { it.isChecked }.map { it.text.toString() }
+    }
+
+    fun setReadingInProgress(inProgress: Boolean) {
+        readBinding.readStartButton.isEnabled = !inProgress
+        readBinding.readStopButton.isEnabled = inProgress
+    }
+
+    fun showResultMessage(message: CharSequence) {
+        readBinding.readResultText.text = message
     }
 }

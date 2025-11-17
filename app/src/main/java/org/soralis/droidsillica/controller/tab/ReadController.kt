@@ -1,8 +1,13 @@
 package org.soralis.droidsillica.controller.tab
 
+import android.app.Activity
+import android.nfc.NfcAdapter
 import android.nfc.Tag
 import android.nfc.tech.NfcF
+import android.os.Handler
+import android.os.Looper
 import java.io.IOException
+import java.lang.ref.WeakReference
 import java.util.Locale
 import org.soralis.droidsillica.model.TabContent
 
@@ -11,6 +16,14 @@ import org.soralis.droidsillica.model.TabContent
  * command against the SiliCa system service (0xFFFF) and exposing the parsed last error command.
  */
 class ReadController {
+
+    interface Listener {
+        fun onWaitingForTag()
+        fun onReadSuccess(result: LastErrorCommandResult)
+        fun onReadError(message: String)
+        fun onReadingStopped()
+        fun onNfcUnavailable()
+    }
 
     data class LastErrorCommandResult(
         val idm: ByteArray,
@@ -23,6 +36,12 @@ class ReadController {
     }
 
     class ReadException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+    private val mainHandler = Handler(Looper.getMainLooper())
+    private var nfcAdapter: NfcAdapter? = null
+    private var readerModeEnabled = false
+    private var activityRef: WeakReference<Activity>? = null
+    private var sessionListener: Listener? = null
 
     fun getContent(): TabContent = TabContent(
         key = KEY,
@@ -55,6 +74,31 @@ class ReadController {
                 // Ignored – the link is already closed/closing.
             }
         }
+    }
+
+    /**
+     * Starts NFC reader mode and waits for a FeliCa tag. Results are delivered to [Listener].
+     */
+    fun startReading(activity: Activity, _selectedOptions: List<String>, listener: Listener) {
+        sessionListener = listener
+        activityRef = WeakReference(activity)
+        val adapter = nfcAdapter ?: NfcAdapter.getDefaultAdapter(activity).also { nfcAdapter = it }
+        if (adapter == null) {
+            listener.onNfcUnavailable()
+            return
+        }
+        adapter.enableReaderMode(
+            activity,
+            readerCallback,
+            NfcAdapter.FLAG_READER_NFC_F or NfcAdapter.FLAG_READER_SKIP_NDEF_CHECK,
+            null
+        )
+        readerModeEnabled = true
+        listener.onWaitingForTag()
+    }
+
+    fun stopReading() {
+        stopReaderModeInternal(notifyStopped = true)
     }
 
     private fun buildReadCommand(idm: ByteArray): ByteArray {
@@ -119,6 +163,35 @@ class ReadController {
             blockData = blockData,
             lastErrorCommand = lastCommand
         )
+    }
+
+    private val readerCallback = NfcAdapter.ReaderCallback { tag ->
+        try {
+            val result = readLastErrorCommand(tag)
+            mainHandler.post {
+                sessionListener?.onReadSuccess(result)
+                stopReaderModeInternal(notifyStopped = false)
+            }
+        } catch (exception: ReadException) {
+            mainHandler.post {
+                sessionListener?.onReadError(
+                    exception.message ?: exception.javaClass.simpleName
+                )
+                stopReaderModeInternal(notifyStopped = false)
+            }
+        }
+    }
+
+    private fun stopReaderModeInternal(notifyStopped: Boolean) {
+        if (readerModeEnabled) {
+            activityRef?.get()?.let { activity ->
+                nfcAdapter?.disableReaderMode(activity)
+            }
+        }
+        readerModeEnabled = false
+        if (notifyStopped) {
+            sessionListener?.onReadingStopped()
+        }
     }
 
     private fun Byte.toPositiveInt(): Int = toInt() and 0xFF

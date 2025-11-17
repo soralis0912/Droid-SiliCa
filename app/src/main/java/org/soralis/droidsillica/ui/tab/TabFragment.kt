@@ -6,6 +6,9 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
+import java.util.Locale
+import org.soralis.droidsillica.R
+import org.soralis.droidsillica.controller.tab.ReadController
 import org.soralis.droidsillica.databinding.FragmentTabHistoryBinding
 import org.soralis.droidsillica.databinding.FragmentTabManualBinding
 import org.soralis.droidsillica.databinding.FragmentTabReadBinding
@@ -26,6 +29,8 @@ class TabFragment : Fragment() {
     private var _manualBinding: FragmentTabManualBinding? = null
     private var _historyBinding: FragmentTabHistoryBinding? = null
     private var tabView: TabView? = null
+    private var readView: ReadView? = null
+    private val readController = ReadController()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -78,21 +83,76 @@ class TabFragment : Fragment() {
         _writeBinding = null
         _manualBinding = null
         _historyBinding = null
+        readController.stopReading()
+        readView = null
     }
 
-    private fun createTabView(key: String): TabView = when (key) {
-        KEY_READ -> ReadView(_readBinding ?: error("Missing read binding"))
-        KEY_WRITE -> WriteView(_writeBinding ?: error("Missing write binding"))
-        KEY_MANUAL -> ManualView(_manualBinding ?: error("Missing manual binding"))
-        KEY_HISTORY -> HistoryView(_historyBinding ?: error("Missing history binding"))
-        else -> BaseTabView(
-            _writeBinding?.toTabUiComponents()
-                ?: _manualBinding?.toTabUiComponents()
-                ?: _historyBinding?.toTabUiComponents()
-                ?: _readBinding?.toTabUiComponents()
-                ?: error("No binding available for $key tab")
-        )
+    private fun createTabView(key: String): TabView {
+        if (key != KEY_READ) {
+            readView = null
+        }
+        return when (key) {
+            KEY_READ -> ReadView(
+                _readBinding ?: error("Missing read binding"),
+                readCallbacks
+            ).also { readView = it }
+            KEY_WRITE -> WriteView(_writeBinding ?: error("Missing write binding"))
+            KEY_MANUAL -> ManualView(_manualBinding ?: error("Missing manual binding"))
+            KEY_HISTORY -> HistoryView(_historyBinding ?: error("Missing history binding"))
+            else -> BaseTabView(
+                _writeBinding?.toTabUiComponents()
+                    ?: _manualBinding?.toTabUiComponents()
+                    ?: _historyBinding?.toTabUiComponents()
+                    ?: _readBinding?.toTabUiComponents()
+                    ?: error("No binding available for $key tab")
+            )
+        }
     }
+
+    private val readCallbacks = object : ReadView.Callbacks {
+        override fun onStartReading(selectedOptions: List<String>) {
+            val activity = activity ?: return
+            readController.startReading(activity, selectedOptions, readListener)
+        }
+
+        override fun onStopReading() {
+            readController.stopReading()
+        }
+    }
+
+    private val readListener = object : ReadController.Listener {
+        override fun onWaitingForTag() {
+            readView?.showResultMessage(getString(R.string.read_result_waiting_for_tag))
+        }
+
+        override fun onReadSuccess(result: ReadController.LastErrorCommandResult) {
+            readView?.showResultMessage(
+                getString(
+                    R.string.read_result_success,
+                    result.idm.toSpacedHex(),
+                    result.formattedCommand
+                )
+            )
+            readView?.setReadingInProgress(false)
+        }
+
+        override fun onReadError(message: String) {
+            readView?.showResultMessage(getString(R.string.read_result_error, message))
+            readView?.setReadingInProgress(false)
+        }
+
+        override fun onReadingStopped() {
+            readView?.setReadingInProgress(false)
+        }
+
+        override fun onNfcUnavailable() {
+            readView?.showResultMessage(getString(R.string.read_result_no_nfc))
+            readView?.setReadingInProgress(false)
+        }
+    }
+
+    private fun ByteArray.toSpacedHex(): String =
+        joinToString(" ") { byte -> String.format(Locale.US, "%02X", byte.toInt() and 0xFF) }
 
     companion object {
         private const val ARG_KEY = "arg_key"

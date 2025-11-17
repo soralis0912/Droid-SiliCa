@@ -13,4 +13,8 @@
     <string name="read_result_need_selection">Select at least one item to read.</string>
     <string name="read_result_starting">Reading: %1$s\nPlease tap a SiliCa card.</string>
     <string name="read_result_stopped">Reading stopped.</string>
+    <string name="read_result_waiting_for_tag">Ready. Hold the card near the device.</string>
+    <string name="read_result_no_nfc">NFC is unavailable on this device.</string>
+    <string name="read_result_error">Read failed: %1$s</string>
+    <string name="read_result_success">IDm: %1$s\nLast error command: %2$s</string>
 </resources>
