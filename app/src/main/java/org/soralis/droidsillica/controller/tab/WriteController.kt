@@ -21,7 +21,7 @@ class WriteController {
     interface Listener {
         fun onWaitingForTag()
         fun onWriteSuccess(result: WriteResult)
-        fun onWriteError(message: String)
+        fun onWriteError(message: String, rawLog: List<RawExchange>)
         fun onWriteStopped()
         fun onNfcUnavailable()
     }
@@ -33,7 +33,11 @@ class WriteController {
         data class RawBlock(val blockNumber: Int, val data: ByteArray) : WriteRequest()
     }
 
-    class WriteException(message: String, cause: Throwable? = null) : Exception(message, cause)
+    class WriteException(
+        message: String,
+        cause: Throwable? = null,
+        val rawLog: List<RawExchange> = emptyList()
+    ) : Exception(message, cause)
 
     data class WriteResult(
         val rawExchanges: List<RawExchange>
@@ -89,25 +93,36 @@ class WriteController {
         timeoutMillis: Int = DEFAULT_TIMEOUT_MS
     ): WriteResult {
         val nfcF = NfcF.get(tag) ?: throw WriteException("Tag is not a FeliCa/NfcF tag")
+        val rawLog = mutableListOf<RawExchange>()
+        var requestSnapshot: ByteArray? = null
         try {
             nfcF.connect()
             nfcF.timeout = timeoutMillis
             val (blockNumber, payload) = buildPayload(request)
             val idm = tag.id.copyOf()
             val writeCommand = buildWriteCommand(idm, blockNumber, payload)
-            val requestSnapshot = writeCommand.copyOf()
+            requestSnapshot = writeCommand.copyOf()
             val response = nfcF.transceive(writeCommand)
-            parseWriteResponse(response)
-            val exchanges = listOf(
-                RawExchange(
-                    label = LABEL_WRITE_WITHOUT_ENCRYPTION,
-                    request = requestSnapshot,
-                    response = response.copyOf()
-                )
+            rawLog += RawExchange(
+                label = LABEL_WRITE_WITHOUT_ENCRYPTION,
+                request = requestSnapshot.copyOf(),
+                response = response.copyOf()
             )
-            return WriteResult(rawExchanges = exchanges)
+            parseWriteResponse(response, rawLog.toList())
+            return WriteResult(rawExchanges = rawLog.toList())
         } catch (io: IOException) {
-            throw WriteException("Unable to write the SiliCa system block", io)
+            if (requestSnapshot != null && rawLog.isEmpty()) {
+                rawLog += RawExchange(
+                    label = LABEL_WRITE_WITHOUT_ENCRYPTION,
+                    request = requestSnapshot.copyOf(),
+                    response = ByteArray(0)
+                )
+            }
+            throw WriteException(
+                "Unable to write the SiliCa system block",
+                io,
+                rawLog.toList()
+            )
         } finally {
             try {
                 nfcF.close()
@@ -127,7 +142,10 @@ class WriteController {
             }
         } catch (exception: WriteException) {
             mainHandler.post {
-                sessionListener?.onWriteError(exception.message ?: DEFAULT_ERROR)
+                sessionListener?.onWriteError(
+                    exception.message ?: DEFAULT_ERROR,
+                    exception.rawLog
+                )
                 stopReaderModeInternal(notifyStopped = false)
             }
         }
@@ -206,9 +224,15 @@ class WriteController {
     }
 
     @Throws(WriteException::class)
-    private fun parseWriteResponse(response: ByteArray) {
+    private fun parseWriteResponse(
+        response: ByteArray,
+        rawLog: List<RawExchange>
+    ) {
         if (response.size < RESPONSE_HEADER_SIZE) {
-            throw WriteException("Response too short: ${response.size} bytes")
+            throw WriteException(
+                "Response too short: ${response.size} bytes",
+                rawLog = rawLog
+            )
         }
         val responseCode = response[1]
         if (responseCode != RESPONSE_WRITE) {
@@ -217,13 +241,17 @@ class WriteController {
                     Locale.US,
                     "Unexpected response code 0x%02X",
                     responseCode.toPositiveInt()
-                )
+                ),
+                rawLog = rawLog
             )
         }
         val statusFlag1 = response[10].toPositiveInt()
         val statusFlag2 = response[11].toPositiveInt()
         if (statusFlag1 != 0 || statusFlag2 != 0) {
-            throw WriteException("FeliCa error status: $statusFlag1, $statusFlag2")
+            throw WriteException(
+                "FeliCa error status: $statusFlag1, $statusFlag2",
+                rawLog = rawLog
+            )
         }
     }
 

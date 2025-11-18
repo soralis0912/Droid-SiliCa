@@ -167,9 +167,14 @@ class TabFragment : Fragment() {
             readView?.setReadingInProgress(false)
         }
 
-        override fun onReadError(message: String) {
+        override fun onReadError(message: String, rawLog: List<RawExchange>) {
             readView?.showResultMessage(getString(R.string.read_result_error, message))
-            readView?.showRawLog(getString(R.string.read_raw_log_placeholder))
+            val rawLogText = if (rawLog.isNotEmpty()) {
+                formatRawLog(rawLog)
+            } else {
+                getString(R.string.read_raw_log_placeholder)
+            }
+            readView?.showRawLog(rawLogText)
             readView?.setReadingInProgress(false)
         }
 
@@ -211,9 +216,14 @@ class TabFragment : Fragment() {
             writeView?.setWritingInProgress(false)
         }
 
-        override fun onWriteError(message: String) {
+        override fun onWriteError(message: String, rawLog: List<RawExchange>) {
             writeView?.showResultMessage(getString(R.string.write_result_error, message))
-            writeView?.showRawLog(getString(R.string.write_raw_log_placeholder))
+            val rawLogText = if (rawLog.isNotEmpty()) {
+                formatRawLog(rawLog)
+            } else {
+                getString(R.string.write_raw_log_placeholder)
+            }
+            writeView?.showRawLog(rawLogText)
             writeView?.setWritingInProgress(false)
         }
 

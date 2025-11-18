@@ -22,7 +22,7 @@ class ReadController {
     interface Listener {
         fun onWaitingForTag()
         fun onReadSuccess(result: ReadResult)
-        fun onReadError(message: String)
+        fun onReadError(message: String, rawLog: List<RawExchange>)
         fun onReadingStopped()
         fun onNfcUnavailable()
     }
@@ -43,7 +43,11 @@ class ReadController {
         val formattedCommand: String = lastErrorCommand.toLegacyHexString()
     }
 
-    class ReadException(message: String, cause: Throwable? = null) : Exception(message, cause)
+    class ReadException(
+        message: String,
+        cause: Throwable? = null,
+        val rawLog: List<RawExchange> = emptyList()
+    ) : Exception(message, cause)
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var nfcAdapter: NfcAdapter? = null
@@ -132,7 +136,16 @@ class ReadController {
             }
             val request = buildReadCommand(idm, pendingBlockNumbers)
             val requestSnapshot = request.copyOf()
-            val response = nfcF.transceive(request)
+            val response = try {
+                nfcF.transceive(request)
+            } catch (io: IOException) {
+                rawLog += RawExchange(
+                    label = LABEL_READ_WITHOUT_ENCRYPTION,
+                    request = requestSnapshot,
+                    response = ByteArray(0)
+                )
+                throw io
+            }
             return parseReadResponse(
                 requestSnapshot,
                 response,
@@ -142,7 +155,7 @@ class ReadController {
                 rawLog
             )
         } catch (e: IOException) {
-            throw ReadException("Unable to read the SiliCa system block", e)
+            throw ReadException("Unable to read the SiliCa system block", e, rawLog.toList())
         } finally {
             try {
                 nfcF.close()
@@ -194,8 +207,16 @@ class ReadController {
         serviceCodes: List<Int>,
         rawLog: MutableList<RawExchange>
     ): ReadResult {
+        rawLog += RawExchange(
+            label = LABEL_READ_WITHOUT_ENCRYPTION,
+            request = rawRequest.copyOf(),
+            response = response.copyOf()
+        )
         if (response.size < RESPONSE_HEADER_SIZE) {
-            throw ReadException("Response too short: ${response.size} bytes")
+            throw ReadException(
+                "Response too short: ${response.size} bytes",
+                rawLog = rawLog.toList()
+            )
         }
         val responseCode = response[1]
         if (responseCode != RESPONSE_READ) {
@@ -204,20 +225,27 @@ class ReadController {
                     Locale.US,
                     "Unexpected response code 0x%02X",
                     responseCode.toPositiveInt()
-                )
+                ),
+                rawLog = rawLog.toList()
             )
         }
         val idm = response.copyOfRange(2, 2 + IDM_LENGTH)
         val statusFlag1 = response[10].toPositiveInt()
         val statusFlag2 = response[11].toPositiveInt()
         if (statusFlag1 != 0 || statusFlag2 != 0) {
-            throw ReadException("FeliCa error status: $statusFlag1, $statusFlag2")
+            throw ReadException(
+                "FeliCa error status: $statusFlag1, $statusFlag2",
+                rawLog = rawLog.toList()
+            )
         }
         val blockCount = response[12].toPositiveInt()
         val payloadOffset = RESPONSE_HEADER_SIZE
         val payloadLength = blockCount * BLOCK_SIZE
         if (response.size < payloadOffset + payloadLength) {
-            throw ReadException("Incomplete block payload (expected $payloadLength bytes)")
+            throw ReadException(
+                "Incomplete block payload (expected $payloadLength bytes)",
+                rawLog = rawLog.toList()
+            )
         }
         val blockData = response.copyOfRange(payloadOffset, payloadOffset + payloadLength)
         val commandLength = if (blockData.isNotEmpty()) blockData[0].toPositiveInt() else 0
@@ -228,11 +256,6 @@ class ReadController {
         } else {
             ByteArray(0)
         }
-        rawLog += RawExchange(
-            label = LABEL_READ_WITHOUT_ENCRYPTION,
-            request = rawRequest.copyOf(),
-            response = response.copyOf()
-        )
         return ReadResult(
             idm = idm,
             pmm = pmm,
@@ -267,7 +290,10 @@ class ReadController {
             response = response.copyOf()
         )
         if (response.size < RESPONSE_POLLING_MIN_SIZE) {
-            throw ReadException("Polling response too short: ${response.size} bytes")
+            throw ReadException(
+                "Polling response too short: ${response.size} bytes",
+                rawLog = rawLog.toList()
+            )
         }
         val responseCode = response[1]
         if (responseCode != RESPONSE_POLLING) {
@@ -276,7 +302,8 @@ class ReadController {
                     Locale.US,
                     "Unexpected polling response code 0x%02X",
                     responseCode.toPositiveInt()
-                )
+                ),
+                rawLog = rawLog.toList()
             )
         }
         val idmStart = 2
@@ -296,7 +323,8 @@ class ReadController {
         } catch (exception: ReadException) {
             mainHandler.post {
                 sessionListener?.onReadError(
-                    exception.message ?: exception.javaClass.simpleName
+                    exception.message ?: exception.javaClass.simpleName,
+                    exception.rawLog
                 )
                 stopReaderModeInternal(notifyStopped = false)
             }
