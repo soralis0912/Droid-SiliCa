@@ -69,4 +69,14 @@
     <string name="write_error_code_limit">A maximum of %1$d codes is allowed.</string>
     <string name="write_error_code_invalid">Invalid code &quot;%1$s&quot;. Use 4 hex characters.</string>
     <string name="write_error_invalid_state">Nothing to write.</string>
+    <string name="history_empty_state">No history yet. Perform a read or write to populate this list.</string>
+    <string name="history_entry_title_format">%1$s • %2$s • %3$s</string>
+    <string name="history_entry_detail_format">Result: %1$s\nRaw result: %2$s</string>
+    <string name="history_status_success">Success</string>
+    <string name="history_status_error">Error</string>
+    <string name="history_status_cancelled">Cancelled</string>
+    <string name="history_operation_read">Read</string>
+    <string name="history_operation_write">Write</string>
+    <string name="history_empty_summary_fallback">No details provided.</string>
+    <string name="history_empty_raw_fallback">Raw data unavailable.</string>
 </resources>

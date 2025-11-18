@@ -8,6 +8,7 @@ import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import java.util.Locale
 import org.soralis.droidsillica.R
+import org.soralis.droidsillica.controller.tab.HistoryController
 import org.soralis.droidsillica.controller.tab.ReadController
 import org.soralis.droidsillica.controller.tab.WriteController
 import org.soralis.droidsillica.databinding.FragmentTabHistoryBinding
@@ -23,6 +24,7 @@ import org.soralis.droidsillica.ui.tab.view.ReadView
 import org.soralis.droidsillica.ui.tab.view.TabView
 import org.soralis.droidsillica.ui.tab.view.WriteView
 import org.soralis.droidsillica.ui.tab.view.toTabUiComponents
+import org.soralis.droidsillica.util.HistoryLogger
 
 class TabFragment : Fragment() {
 
@@ -33,8 +35,12 @@ class TabFragment : Fragment() {
     private var tabView: TabView? = null
     private var readView: ReadView? = null
     private var writeView: WriteView? = null
+    private var historyView: HistoryView? = null
     private val readController = ReadController()
     private val writeController = WriteController()
+    private val historyController = HistoryController()
+    private var pendingReadRequest: ReadRequestMetadata? = null
+    private var pendingWriteRequest: WriteController.WriteRequest? = null
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -78,6 +84,14 @@ class TabFragment : Fragment() {
 
         tabView = createTabView(content.key)
         tabView?.render(content)
+        if (content.key == KEY_HISTORY) {
+            refreshHistory()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refreshHistory()
     }
 
     override fun onDestroyView() {
@@ -91,6 +105,7 @@ class TabFragment : Fragment() {
         readView = null
         writeController.stopWriting()
         writeView = null
+        historyView = null
     }
 
     private fun createTabView(key: String): TabView {
@@ -99,6 +114,9 @@ class TabFragment : Fragment() {
         }
         if (key != KEY_WRITE) {
             writeView = null
+        }
+        if (key != KEY_HISTORY) {
+            historyView = null
         }
         return when (key) {
             KEY_READ -> ReadView(
@@ -110,7 +128,9 @@ class TabFragment : Fragment() {
                 writeCallbacks
             ).also { writeView = it }
             KEY_MANUAL -> ManualView(_manualBinding ?: error("Missing manual binding"))
-            KEY_HISTORY -> HistoryView(_historyBinding ?: error("Missing history binding"))
+            KEY_HISTORY -> HistoryView(_historyBinding ?: error("Missing history binding")).also {
+                historyView = it
+            }
             else -> BaseTabView(
                 _writeBinding?.toTabUiComponents()
                     ?: _manualBinding?.toTabUiComponents()
@@ -124,6 +144,7 @@ class TabFragment : Fragment() {
     private val readCallbacks = object : ReadView.Callbacks {
         override fun onStartReading(blockNumbers: List<Int>, readLastErrorCommand: Boolean) {
             val activity = activity ?: return
+            pendingReadRequest = ReadRequestMetadata(blockNumbers.toList(), readLastErrorCommand)
             readController.startReading(activity, blockNumbers, readLastErrorCommand, readListener)
         }
 
@@ -153,22 +174,35 @@ class TabFragment : Fragment() {
                 result.serviceCodes,
                 getString(R.string.read_result_no_service_codes)
             )
-            readView?.showResultMessage(
-                getString(
-                    R.string.read_result_success,
-                    result.formattedIdm,
-                    result.formattedPmm,
-                    systemCodesText,
-                    serviceCodesText,
-                    commandText
-                )
+            val resultMessage = getString(
+                R.string.read_result_success,
+                result.formattedIdm,
+                result.formattedPmm,
+                systemCodesText,
+                serviceCodesText,
+                commandText
             )
+            readView?.showResultMessage(resultMessage)
             readView?.showRawLog(rawLogText)
             readView?.setReadingInProgress(false)
+            val request = pendingReadRequest
+            val appContext = context?.applicationContext
+            if (appContext != null) {
+                HistoryLogger.logReadSuccess(
+                    appContext,
+                    result,
+                    request?.blockNumbers,
+                    request?.readBlocks ?: true,
+                    resultMessage,
+                    rawLogText
+                )
+            }
+            pendingReadRequest = null
         }
 
         override fun onReadError(message: String, rawLog: List<RawExchange>) {
-            readView?.showResultMessage(getString(R.string.read_result_error, message))
+            val resultMessage = getString(R.string.read_result_error, message)
+            readView?.showResultMessage(resultMessage)
             val rawLogText = if (rawLog.isNotEmpty()) {
                 formatRawLog(rawLog)
             } else {
@@ -176,23 +210,71 @@ class TabFragment : Fragment() {
             }
             readView?.showRawLog(rawLogText)
             readView?.setReadingInProgress(false)
+            val request = pendingReadRequest
+            val appContext = context?.applicationContext
+            if (appContext != null) {
+                HistoryLogger.logReadError(
+                    appContext,
+                    message,
+                    rawLog,
+                    request?.blockNumbers,
+                    request?.readBlocks ?: true,
+                    resultMessage,
+                    rawLogText
+                )
+            }
+            pendingReadRequest = null
         }
 
         override fun onReadingStopped() {
-            readView?.showRawLog(getString(R.string.read_raw_log_placeholder))
+            val resultMessage = getString(R.string.read_result_stopped)
+            val rawLogPlaceholder = getString(R.string.read_raw_log_placeholder)
+            readView?.showResultMessage(resultMessage)
+            readView?.showRawLog(rawLogPlaceholder)
             readView?.setReadingInProgress(false)
+            val request = pendingReadRequest
+            if (request != null) {
+                val appContext = context?.applicationContext
+                if (appContext != null) {
+                    HistoryLogger.logReadCancelled(
+                        appContext,
+                        request.blockNumbers,
+                        request.readBlocks,
+                        resultMessage,
+                        rawLogPlaceholder
+                    )
+                }
+            }
+            pendingReadRequest = null
         }
 
         override fun onNfcUnavailable() {
-            readView?.showResultMessage(getString(R.string.read_result_no_nfc))
-            readView?.showRawLog(getString(R.string.read_raw_log_placeholder))
+            val resultMessage = getString(R.string.read_result_no_nfc)
+            val rawLogPlaceholder = getString(R.string.read_raw_log_placeholder)
+            readView?.showResultMessage(resultMessage)
+            readView?.showRawLog(rawLogPlaceholder)
             readView?.setReadingInProgress(false)
+            val request = pendingReadRequest
+            val appContext = context?.applicationContext
+            if (appContext != null) {
+                HistoryLogger.logReadError(
+                    appContext,
+                    getString(R.string.read_result_no_nfc),
+                    emptyList(),
+                    request?.blockNumbers,
+                    request?.readBlocks ?: true,
+                    resultMessage,
+                    rawLogPlaceholder
+                )
+            }
+            pendingReadRequest = null
         }
     }
 
     private val writeCallbacks = object : WriteView.Callbacks {
         override fun onStartWriting(request: WriteController.WriteRequest) {
             val activity = activity ?: return
+            pendingWriteRequest = request
             writeController.startWriting(activity, request, writeListener)
         }
 
@@ -209,15 +291,26 @@ class TabFragment : Fragment() {
 
         override fun onWriteSuccess(result: WriteController.WriteResult) {
             val rawLogText = formatRawLog(result.rawExchanges)
-            writeView?.showResultMessage(
-                getString(R.string.write_result_success)
-            )
+            val resultMessage = getString(R.string.write_result_success)
+            writeView?.showResultMessage(resultMessage)
             writeView?.showRawLog(rawLogText)
             writeView?.setWritingInProgress(false)
+            val appContext = context?.applicationContext
+            if (appContext != null) {
+                HistoryLogger.logWriteSuccess(
+                    appContext,
+                    pendingWriteRequest,
+                    result.rawExchanges,
+                    resultMessage,
+                    rawLogText
+                )
+            }
+            pendingWriteRequest = null
         }
 
         override fun onWriteError(message: String, rawLog: List<RawExchange>) {
-            writeView?.showResultMessage(getString(R.string.write_result_error, message))
+            val resultMessage = getString(R.string.write_result_error, message)
+            writeView?.showResultMessage(resultMessage)
             val rawLogText = if (rawLog.isNotEmpty()) {
                 formatRawLog(rawLog)
             } else {
@@ -225,18 +318,59 @@ class TabFragment : Fragment() {
             }
             writeView?.showRawLog(rawLogText)
             writeView?.setWritingInProgress(false)
+            val appContext = context?.applicationContext
+            if (appContext != null) {
+                HistoryLogger.logWriteError(
+                    appContext,
+                    message,
+                    pendingWriteRequest,
+                    rawLog,
+                    resultMessage,
+                    rawLogText
+                )
+            }
+            pendingWriteRequest = null
         }
 
         override fun onWriteStopped() {
-            writeView?.showResultMessage(getString(R.string.write_result_cancelled))
-            writeView?.showRawLog(getString(R.string.write_raw_log_placeholder))
+            val resultMessage = getString(R.string.write_result_cancelled)
+            val rawPlaceholder = getString(R.string.write_raw_log_placeholder)
+            writeView?.showResultMessage(resultMessage)
+            writeView?.showRawLog(rawPlaceholder)
             writeView?.setWritingInProgress(false)
+            val request = pendingWriteRequest
+            if (request != null) {
+                val appContext = context?.applicationContext
+                if (appContext != null) {
+                    HistoryLogger.logWriteCancelled(
+                        appContext,
+                        request,
+                        resultMessage,
+                        rawPlaceholder
+                    )
+                }
+            }
+            pendingWriteRequest = null
         }
 
         override fun onNfcUnavailable() {
-            writeView?.showResultMessage(getString(R.string.write_result_no_nfc))
-            writeView?.showRawLog(getString(R.string.write_raw_log_placeholder))
+            val resultMessage = getString(R.string.write_result_no_nfc)
+            val rawPlaceholder = getString(R.string.write_raw_log_placeholder)
+            writeView?.showResultMessage(resultMessage)
+            writeView?.showRawLog(rawPlaceholder)
             writeView?.setWritingInProgress(false)
+            val appContext = context?.applicationContext
+            if (appContext != null) {
+                HistoryLogger.logWriteError(
+                    appContext,
+                    getString(R.string.write_result_no_nfc),
+                    pendingWriteRequest,
+                    emptyList(),
+                    resultMessage,
+                    rawPlaceholder
+                )
+            }
+            pendingWriteRequest = null
         }
     }
 
@@ -280,4 +414,17 @@ class TabFragment : Fragment() {
             )
         }
     }
+
+    private fun refreshHistory() {
+        if (arguments?.getString(ARG_KEY) != KEY_HISTORY) return
+        val historyTabView = historyView ?: return
+        val context = context ?: return
+        val entries = historyController.getHistory(context)
+        historyTabView.renderHistory(entries)
+    }
+
+    private data class ReadRequestMetadata(
+        val blockNumbers: List<Int>,
+        val readBlocks: Boolean
+    )
 }
