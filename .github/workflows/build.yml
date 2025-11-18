@@ -33,13 +33,15 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Cache
+      - name: Cache Gradle
         uses: actions/cache@v3
         with:
           path: |
             ~/.gradle/caches/
             ~/.gradle/wrapper/
-          key: ${{ hashFiles('gradle/wrapper/gradle-wrapper.properties') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
 
       - name: Set environments
         run: |
@@ -73,6 +75,16 @@ jobs:
             echo "build.gradle の versionName を変更してください"
             echo ""
             exit 1
+          fi
+
+      - name: Setup debug keystore
+        run: |
+          # Create debug keystore if it doesn't exist
+          if [ ! -f app/android.jks ]; then
+            keytool -genkey -v -keystore app/android.jks \
+              -storepass android -alias android -keypass android \
+              -keyalg RSA -keysize 2048 -validity 10000 \
+              -dname "CN=Android Debug,O=Android,C=US"
           fi
 
       - name: Build with Gradle
