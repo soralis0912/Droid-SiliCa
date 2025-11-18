@@ -17,20 +17,22 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val tabController = TabController()
     private var tabMediator: TabLayoutMediator? = null
+    private var expertModeEnabled: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         setSupportActionBar(binding.topAppBar)
+        expertModeEnabled = savedInstanceState?.getBoolean(STATE_EXPERT_MODE)
+            ?: ExpertModeManager.isExpertModeEnabled(this)
         setupTabs()
     }
 
     private fun setupTabs() {
         tabMediator?.detach()
-        val expertMode = ExpertModeManager.isExpertModeEnabled(this)
-        val tabs = tabController.getTabs(expertMode)
-        binding.viewPager.adapter = TabPagerAdapter(this, tabs, expertMode)
+        val tabs = tabController.getTabs(expertModeEnabled)
+        binding.viewPager.adapter = TabPagerAdapter(this, tabs, expertModeEnabled)
         tabMediator = TabLayoutMediator(binding.tabLayout, binding.viewPager) { tab, position ->
             tab.text = tabs[position].title
         }.also { it.attach() }
@@ -57,12 +59,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showExpertModeDialog() {
-        val isExpert = ExpertModeManager.isExpertModeEnabled(this)
         val options = arrayOf(
             getString(R.string.settings_mode_basic),
             getString(R.string.settings_mode_expert)
         )
-        val checkedItem = if (isExpert) 1 else 0
+        val checkedItem = if (expertModeEnabled) 1 else 0
         var selectedIndex = checkedItem
         MaterialAlertDialogBuilder(this)
             .setTitle(R.string.settings_expert_mode_title)
@@ -71,11 +72,23 @@ class MainActivity : AppCompatActivity() {
             }
             .setPositiveButton(android.R.string.ok) { dialog, _ ->
                 val enableExpert = selectedIndex == 1
-                ExpertModeManager.setExpertModeEnabled(this, enableExpert)
+                if (expertModeEnabled != enableExpert) {
+                    expertModeEnabled = enableExpert
+                    ExpertModeManager.setExpertModeEnabled(this, enableExpert)
+                    setupTabs()
+                }
                 dialog.dismiss()
-                setupTabs()
             }
             .setNegativeButton(android.R.string.cancel, null)
             .show()
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_EXPERT_MODE, expertModeEnabled)
+    }
+
+    companion object {
+        private const val STATE_EXPERT_MODE = "state_expert_mode"
     }
 }

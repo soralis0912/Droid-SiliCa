@@ -95,7 +95,9 @@ class TabFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val args = requireArguments()
-        expertModeEnabled = args.getBoolean(ARG_EXPERT_MODE, false)
+        expertModeEnabled =
+            savedInstanceState?.getBoolean(STATE_EXPERT_MODE)
+                ?: args.getBoolean(ARG_EXPERT_MODE, false)
         val key = args.getString(ARG_KEY).orEmpty()
         val title = args.getString(ARG_TITLE).orEmpty()
         val description = args.getString(ARG_DESCRIPTION).orEmpty()
@@ -143,6 +145,11 @@ class TabFragment : Fragment() {
         writeController.stopWriting()
         writeView = null
         historyView = null
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean(STATE_EXPERT_MODE, expertModeEnabled)
     }
 
     private fun createTabView(key: String): TabView {
@@ -598,6 +605,7 @@ class TabFragment : Fragment() {
         private const val ARG_DESCRIPTION = "arg_description"
         private const val ARG_ACTIONS = "arg_actions"
         private const val ARG_EXPERT_MODE = "arg_expert_mode"
+        private const val STATE_EXPERT_MODE = "state_expert_mode"
         private const val KEY_READ = "read"
         private const val KEY_WRITE = "write"
         private const val KEY_MANUAL = "manual"
