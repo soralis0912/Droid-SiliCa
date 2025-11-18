@@ -44,6 +44,7 @@ class TabFragment : Fragment() {
     private var readView: ReadView? = null
     private var writeView: WriteView? = null
     private var historyView: HistoryView? = null
+    private var expertModeEnabled: Boolean = false
     private val readController = ReadController()
     private val writeController = WriteController()
     private val historyController = HistoryController()
@@ -94,6 +95,7 @@ class TabFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         val args = requireArguments()
+        expertModeEnabled = args.getBoolean(ARG_EXPERT_MODE, false)
         val key = args.getString(ARG_KEY).orEmpty()
         val title = args.getString(ARG_TITLE).orEmpty()
         val description = args.getString(ARG_DESCRIPTION).orEmpty()
@@ -108,6 +110,10 @@ class TabFragment : Fragment() {
 
         tabView = createTabView(content.key)
         tabView?.render(content)
+        when (content.key) {
+            KEY_READ -> readView?.setExpertFeaturesVisible(expertModeEnabled)
+            KEY_WRITE -> writeView?.setExpertMode(expertModeEnabled)
+        }
         when (content.key) {
             KEY_HISTORY -> refreshHistory()
             KEY_READ -> {
@@ -191,6 +197,10 @@ class TabFragment : Fragment() {
         }
 
         override fun onExportSystemBlocks() {
+            if (!expertModeEnabled) {
+                showToast(getString(R.string.expert_mode_required))
+                return
+            }
             val timestamp = lastSystemBlockTimestamp
             if (timestamp == null) {
                 showToast(getString(R.string.read_export_hex_none))
@@ -385,6 +395,10 @@ class TabFragment : Fragment() {
         }
 
         override fun onWriteHexFileRequested() {
+            if (!expertModeEnabled) {
+                showToast(getString(R.string.expert_mode_required))
+                return
+            }
             importHexLauncher.launch(arrayOf("application/octet-stream", "text/plain", "text/*"))
         }
     }
@@ -583,6 +597,7 @@ class TabFragment : Fragment() {
         private const val ARG_TITLE = "arg_title"
         private const val ARG_DESCRIPTION = "arg_description"
         private const val ARG_ACTIONS = "arg_actions"
+        private const val ARG_EXPERT_MODE = "arg_expert_mode"
         private const val KEY_READ = "read"
         private const val KEY_WRITE = "write"
         private const val KEY_MANUAL = "manual"
@@ -591,12 +606,13 @@ class TabFragment : Fragment() {
         private const val FULL_DUMP_BLOCK_COUNT = 0xFF
         private val FULL_DUMP_BLOCKS = (0 until FULL_DUMP_BLOCK_COUNT).toList()
 
-        fun newInstance(content: TabContent): TabFragment = TabFragment().apply {
+        fun newInstance(content: TabContent, expertModeEnabled: Boolean): TabFragment = TabFragment().apply {
             arguments = bundleOf(
                 ARG_KEY to content.key,
                 ARG_TITLE to content.title,
                 ARG_DESCRIPTION to content.description,
-                ARG_ACTIONS to content.actions.toTypedArray()
+                ARG_ACTIONS to content.actions.toTypedArray(),
+                ARG_EXPERT_MODE to expertModeEnabled
             )
         }
     }
@@ -615,6 +631,10 @@ class TabFragment : Fragment() {
         }
 
         override fun onExportEntry(timestamp: Long) {
+            if (!expertModeEnabled) {
+                showToast(getString(R.string.expert_mode_required))
+                return
+            }
             if (!exportableHistoryTimestamps.contains(timestamp)) {
                 showToast(getString(R.string.read_export_hex_error))
                 refreshHistory()
@@ -633,7 +653,7 @@ class TabFragment : Fragment() {
         val entries = historyController.getHistory(context)
         val exportable = historyController.getSystemBlockTimestamps(context)
         exportableHistoryTimestamps = exportable
-        historyTabView.renderHistory(entries, exportable)
+        historyTabView.renderHistory(entries, exportable, expertModeEnabled)
     }
 
     private fun refreshSystemBlockExportAvailability() {
@@ -645,6 +665,10 @@ class TabFragment : Fragment() {
     }
 
     private fun handleHexExportResult(uri: Uri?) {
+        if (!expertModeEnabled) {
+            showToast(getString(R.string.expert_mode_required))
+            return
+        }
         val timestamp = pendingExportTimestamp
         pendingExportTimestamp = null
         if (uri == null || timestamp == null) {
@@ -793,6 +817,10 @@ class TabFragment : Fragment() {
     }
 
     private fun handleHexImportResult(uri: Uri?) {
+        if (!expertModeEnabled) {
+            showToast(getString(R.string.expert_mode_required))
+            return
+        }
         if (uri == null) {
             showToast(getString(R.string.write_import_hex_cancelled))
             return
@@ -818,6 +846,10 @@ class TabFragment : Fragment() {
     }
 
     private fun startHexFileWrite(uri: Uri, payload: SystemBlockHexCodec.HexPayload) {
+        if (!expertModeEnabled) {
+            showToast(getString(R.string.expert_mode_required))
+            return
+        }
         val activity = activity ?: return
         val blocks = payload.blocks.map {
             WriteController.WriteRequest.RawBlockPayload(it.blockNumber, it.data)

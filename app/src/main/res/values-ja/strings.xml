@@ -101,4 +101,10 @@
     <string name="history_action_delete">削除</string>
     <string name="history_action_clear_all">すべて削除</string>
     <string name="history_action_export_hex">.hex をエクスポート</string>
+    <string name="settings_menu_expert_mode">モード</string>
+    <string name="settings_expert_mode_title">モードを選択</string>
+    <string name="settings_expert_mode_message">BASICでは高度なタブやファイル入出力を隠し、EXPERTで全機能を解放します。</string>
+    <string name="settings_mode_basic">BASIC</string>
+    <string name="settings_mode_expert">EXPERT</string>
+    <string name="expert_mode_required">この機能を使うにはエキスパートモードを有効にしてください。</string>
 </resources>

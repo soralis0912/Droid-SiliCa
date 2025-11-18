@@ -45,6 +45,10 @@ class WriteView(
             binding.root.context.getString(R.string.write_raw_log_placeholder)
     }
 
+    fun setExpertMode(enabled: Boolean) {
+        binding.writeHexFileButton.isVisible = enabled
+    }
+
     override fun render(content: TabContent) {
         super.render(content)
         binding.writeResultText.text =

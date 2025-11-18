@@ -31,7 +31,8 @@ class HistoryView(
 
     fun renderHistory(
         entries: List<HistoryLogger.HistoryLogEntry>,
-        exportableTimestamps: Set<Long>
+        exportableTimestamps: Set<Long>,
+        showExportButtons: Boolean
     ) {
         val container = binding.actionList
         val inflater = LayoutInflater.from(container.context)
@@ -68,7 +69,7 @@ class HistoryView(
             }
             entryBinding.historyEntryResult.text = resultDetail
             entryBinding.historyEntryRaw.text = rawDetail
-            val canExport = exportableTimestamps.contains(entry.timestamp)
+            val canExport = exportableTimestamps.contains(entry.timestamp) && showExportButtons
             entryBinding.buttonExportHistory.isVisible = canExport
             if (canExport) {
                 entryBinding.buttonExportHistory.setOnClickListener {

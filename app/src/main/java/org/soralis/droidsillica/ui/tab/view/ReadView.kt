@@ -1,6 +1,7 @@
 package org.soralis.droidsillica.ui.tab.view
 
 import androidx.annotation.StringRes
+import androidx.core.view.isVisible
 import org.soralis.droidsillica.R
 import org.soralis.droidsillica.databinding.FragmentTabReadBinding
 import org.soralis.droidsillica.model.TabContent
@@ -14,6 +15,7 @@ class ReadView(
     private var readingInProgress = false
     private var fullDumpButtonEnabled = true
     private var fullDumpResetEnabled = false
+    private var expertFeaturesVisible = true
 
     interface Callbacks {
         fun onStartReading(blockNumbers: List<Int>, readLastErrorCommand: Boolean)
@@ -110,7 +112,9 @@ class ReadView(
     }
 
     private fun updateExportButtonState() {
-        readBinding.readExportHexButton.isEnabled = exportEnabled && !readingInProgress
+        readBinding.readExportHexButton.isVisible = expertFeaturesVisible
+        readBinding.readExportHexButton.isEnabled =
+            expertFeaturesVisible && exportEnabled && !readingInProgress
     }
 
     private fun updateFullDumpControls() {
@@ -139,6 +143,11 @@ class ReadView(
     fun setFullDumpResetEnabled(enabled: Boolean) {
         fullDumpResetEnabled = enabled
         updateFullDumpControls()
+    }
+
+    fun setExpertFeaturesVisible(visible: Boolean) {
+        expertFeaturesVisible = visible
+        updateExportButtonState()
     }
 
     fun showResultMessage(message: CharSequence) {

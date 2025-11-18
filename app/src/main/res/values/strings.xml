@@ -101,4 +101,10 @@
     <string name="history_action_delete">Delete</string>
     <string name="history_action_clear_all">Clear All</string>
     <string name="history_action_export_hex">Export .hex</string>
+    <string name="settings_menu_expert_mode">Mode</string>
+    <string name="settings_expert_mode_title">Select mode</string>
+    <string name="settings_expert_mode_message">Basic hides advanced tabs and file import/export. Expert unlocks every feature.</string>
+    <string name="settings_mode_basic">Basic</string>
+    <string name="settings_mode_expert">Expert</string>
+    <string name="expert_mode_required">Enable expert mode to use this feature.</string>
 </resources>

@@ -11,6 +11,7 @@ class ManualController {
             "Search chapters with the toolbar action.",
             "Bookmark frequently used procedures for quick recall.",
             "Share manual excerpts with the support team."
-        )
+        ),
+        requiresExpert = true
     )
 }

@@ -18,9 +18,7 @@ class TabController {
         HistoryController().getContent()
     )
 
-    fun getTabCount(): Int = tabContents.size
-
-    fun getTab(position: Int): TabContent = tabContents[position]
-
-    fun getTitle(position: Int): String = getTab(position).title
+    fun getTabs(isExpertMode: Boolean): List<TabContent> = tabContents.filter {
+        !it.requiresExpert || isExpertMode
+    }
 }
