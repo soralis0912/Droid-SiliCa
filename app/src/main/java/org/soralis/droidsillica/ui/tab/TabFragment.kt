@@ -248,8 +248,16 @@ class TabFragment : Fragment() {
             pendingReadRequest = null
         }
 
-        override fun onReadError(message: String, rawLog: List<RawExchange>) {
-            val resultMessage = getString(R.string.read_result_error, message)
+        override fun onReadError(
+            message: String,
+            rawLog: List<RawExchange>,
+            partialResult: ReadController.PartialReadResult?
+        ) {
+            val baseMessage = getString(R.string.read_result_error, message)
+            val resultMessage = partialResult?.let { partial ->
+                val partialDetails = formatPartialReadResult(partial)
+                "$baseMessage\n\n$partialDetails"
+            } ?: baseMessage
             readView?.showResultMessage(resultMessage)
             val rawLogText = if (rawLog.isNotEmpty()) {
                 formatRawLog(rawLog)
@@ -455,6 +463,30 @@ class TabFragment : Fragment() {
                 exchange.formattedResponse.ifEmpty { getString(R.string.raw_data_unavailable) }
             )
         }
+    }
+
+    private fun formatPartialReadResult(partial: ReadController.PartialReadResult): String {
+        val systemCodesText = formatCodeList(
+            partial.systemCodes,
+            getString(R.string.read_result_no_system_codes)
+        )
+        val serviceCodesText = formatCodeList(
+            partial.serviceCodes,
+            getString(R.string.read_result_no_service_codes)
+        )
+        val blockSummary = if (partial.blockNumbers.isEmpty()) {
+            getString(R.string.read_result_no_blocks)
+        } else {
+            getString(R.string.read_result_no_block_payload)
+        }
+        return getString(
+            R.string.read_result_success,
+            partial.formattedIdm,
+            partial.formattedPmm,
+            systemCodesText,
+            serviceCodesText,
+            blockSummary
+        )
     }
 
     private fun formatBlockSummary(result: ReadController.ReadResult): String {
