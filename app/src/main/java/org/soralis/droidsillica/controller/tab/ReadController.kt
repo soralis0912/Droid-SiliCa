@@ -36,7 +36,8 @@ class ReadController {
         val statusFlag2: Int,
         val blockData: ByteArray,
         val lastErrorCommand: ByteArray,
-        val rawExchanges: List<RawExchange>
+        val rawExchanges: List<RawExchange>,
+        val blockNumbers: List<Int>
     ) {
         val formattedIdm: String = idm.toLegacyHexString()
         val formattedPmm: String = pmm.toLegacyHexString()
@@ -131,10 +132,12 @@ class ReadController {
                     statusFlag2 = 0,
                     blockData = ByteArray(0),
                     lastErrorCommand = ByteArray(0),
-                    rawExchanges = rawLog.toList()
+                    rawExchanges = rawLog.toList(),
+                    blockNumbers = emptyList()
                 )
             }
-            val request = buildReadCommand(idm, pendingBlockNumbers)
+            val blocksToRead = pendingBlockNumbers.ifEmpty { DEFAULT_BLOCKS }
+            val request = buildReadCommand(idm, blocksToRead)
             val requestSnapshot = request.copyOf()
             val response = try {
                 nfcF.transceive(request)
@@ -152,7 +155,8 @@ class ReadController {
                 pmm,
                 systemCodes,
                 serviceCodes,
-                rawLog
+                rawLog,
+                blocksToRead
             )
         } catch (e: IOException) {
             throw ReadException("Unable to read the SiliCa system block", e, rawLog.toList())
@@ -205,7 +209,8 @@ class ReadController {
         pmm: ByteArray,
         systemCodes: List<Int>,
         serviceCodes: List<Int>,
-        rawLog: MutableList<RawExchange>
+        rawLog: MutableList<RawExchange>,
+        blockNumbers: List<Int>
     ): ReadResult {
         rawLog += RawExchange(
             label = LABEL_READ_WITHOUT_ENCRYPTION,
@@ -265,7 +270,8 @@ class ReadController {
             statusFlag2 = statusFlag2,
             blockData = blockData,
             lastErrorCommand = lastCommand,
-            rawExchanges = rawLog.toList()
+            rawExchanges = rawLog.toList(),
+            blockNumbers = blockNumbers.toList()
         )
     }
 

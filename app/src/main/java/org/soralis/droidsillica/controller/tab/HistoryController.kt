@@ -22,4 +22,7 @@ class HistoryController {
     fun clearHistory(context: Context) {
         HistoryLogger.clearHistory(context)
     }
+
+    fun getSystemBlockTimestamps(context: Context): Set<Long> =
+        HistoryLogger.getSystemBlockTimestamps(context)
 }

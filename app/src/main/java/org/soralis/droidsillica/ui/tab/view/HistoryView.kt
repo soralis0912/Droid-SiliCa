@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.TextView
 import android.widget.Toast
+import androidx.core.view.isVisible
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
@@ -23,6 +24,7 @@ class HistoryView(
     interface Callbacks {
         fun onDeleteEntry(timestamp: Long)
         fun onClearHistory()
+        fun onExportEntry(timestamp: Long)
     }
 
     init {
@@ -31,7 +33,10 @@ class HistoryView(
         }
     }
 
-    fun renderHistory(entries: List<HistoryLogger.HistoryLogEntry>) {
+    fun renderHistory(
+        entries: List<HistoryLogger.HistoryLogEntry>,
+        exportableTimestamps: Set<Long>
+    ) {
         val container = binding.actionList
         val inflater = LayoutInflater.from(container.context)
         container.removeAllViews()
@@ -69,6 +74,13 @@ class HistoryView(
             entryBinding.historyEntryRaw.text = rawDetail
             entryBinding.buttonCopyHistory.setOnClickListener {
                 copyEntry(entry, operationLabel, statusLabel, timestamp, resultDetail, rawDetail)
+            }
+            val canExport = exportableTimestamps.contains(entry.timestamp)
+            entryBinding.buttonExportHistory.isVisible = canExport
+            if (canExport) {
+                entryBinding.buttonExportHistory.setOnClickListener {
+                    callbacks.onExportEntry(entry.timestamp)
+                }
             }
             entryBinding.buttonDeleteHistory.setOnClickListener {
                 callbacks.onDeleteEntry(entry.timestamp)

@@ -1,11 +1,16 @@
 package org.soralis.droidsillica.ui.tab
 
+import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
+import java.io.IOException
 import java.util.Locale
 import org.soralis.droidsillica.R
 import org.soralis.droidsillica.controller.tab.HistoryController
@@ -25,6 +30,7 @@ import org.soralis.droidsillica.ui.tab.view.TabView
 import org.soralis.droidsillica.ui.tab.view.WriteView
 import org.soralis.droidsillica.ui.tab.view.toTabUiComponents
 import org.soralis.droidsillica.util.HistoryLogger
+import org.soralis.droidsillica.util.SystemBlockHexCodec
 
 class TabFragment : Fragment() {
 
@@ -41,6 +47,20 @@ class TabFragment : Fragment() {
     private val historyController = HistoryController()
     private var pendingReadRequest: ReadRequestMetadata? = null
     private var pendingWriteRequest: WriteController.WriteRequest? = null
+    private var lastSystemBlockTimestamp: Long? = null
+    private var hasSystemBlockSnapshot: Boolean = false
+    private var pendingExportTimestamp: Long? = null
+    private var exportableHistoryTimestamps: Set<Long> = emptySet()
+
+    private val exportHexLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument("application/octet-stream")) { uri ->
+            handleHexExportResult(uri)
+        }
+
+    private val importHexLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            handleHexImportResult(uri)
+        }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -84,14 +104,18 @@ class TabFragment : Fragment() {
 
         tabView = createTabView(content.key)
         tabView?.render(content)
-        if (content.key == KEY_HISTORY) {
-            refreshHistory()
+        when (content.key) {
+            KEY_HISTORY -> refreshHistory()
+            KEY_READ -> refreshSystemBlockExportAvailability()
         }
     }
 
     override fun onResume() {
         super.onResume()
         refreshHistory()
+        if (arguments?.getString(ARG_KEY) == KEY_READ) {
+            refreshSystemBlockExportAvailability()
+        }
     }
 
     override fun onDestroyView() {
@@ -154,6 +178,17 @@ class TabFragment : Fragment() {
         override fun onStopReading() {
             readController.stopReading()
         }
+
+        override fun onExportSystemBlocks() {
+            val timestamp = lastSystemBlockTimestamp
+            if (timestamp == null) {
+                showToast(getString(R.string.read_export_hex_none))
+                return
+            }
+            pendingExportTimestamp = timestamp
+            val defaultName = "silica_$timestamp.hex"
+            exportHexLauncher.launch(defaultName)
+        }
     }
 
     private val readListener = object : ReadController.Listener {
@@ -190,8 +225,9 @@ class TabFragment : Fragment() {
             readView?.setReadingInProgress(false)
             val request = pendingReadRequest
             val appContext = context?.applicationContext
+            var historyTimestamp: Long? = null
             if (appContext != null) {
-                HistoryLogger.logReadSuccess(
+                historyTimestamp = HistoryLogger.logReadSuccess(
                     appContext,
                     result,
                     request?.blockNumbers,
@@ -201,6 +237,17 @@ class TabFragment : Fragment() {
                 )
             }
             refreshHistory()
+            if (result.blockData.isNotEmpty() && result.blockNumbers.isNotEmpty()) {
+                if (historyTimestamp != null) {
+                    lastSystemBlockTimestamp = historyTimestamp
+                    hasSystemBlockSnapshot = true
+                    readView?.setExportEnabled(true)
+                } else {
+                    refreshSystemBlockExportAvailability()
+                }
+            } else {
+                readView?.setExportEnabled(hasSystemBlockSnapshot)
+            }
             pendingReadRequest = null
         }
 
@@ -214,6 +261,7 @@ class TabFragment : Fragment() {
             }
             readView?.showRawLog(rawLogText)
             readView?.setReadingInProgress(false)
+            readView?.setExportEnabled(hasSystemBlockSnapshot)
             val request = pendingReadRequest
             val appContext = context?.applicationContext
             if (appContext != null) {
@@ -237,6 +285,7 @@ class TabFragment : Fragment() {
             readView?.showResultMessage(resultMessage)
             readView?.showRawLog(rawLogPlaceholder)
             readView?.setReadingInProgress(false)
+            readView?.setExportEnabled(hasSystemBlockSnapshot)
             val request = pendingReadRequest
             if (request != null) {
                 val appContext = context?.applicationContext
@@ -260,6 +309,7 @@ class TabFragment : Fragment() {
             readView?.showResultMessage(resultMessage)
             readView?.showRawLog(rawLogPlaceholder)
             readView?.setReadingInProgress(false)
+            readView?.setExportEnabled(hasSystemBlockSnapshot)
             val request = pendingReadRequest
             val appContext = context?.applicationContext
             if (appContext != null) {
@@ -287,6 +337,10 @@ class TabFragment : Fragment() {
 
         override fun onCancelWriting() {
             writeController.stopWriting()
+        }
+
+        override fun onWriteHexFileRequested() {
+            importHexLauncher.launch(arrayOf("application/octet-stream", "text/plain", "text/*"))
         }
     }
 
@@ -438,6 +492,17 @@ class TabFragment : Fragment() {
             historyController.clearHistory(context)
             refreshHistory()
         }
+
+        override fun onExportEntry(timestamp: Long) {
+            if (!exportableHistoryTimestamps.contains(timestamp)) {
+                showToast(getString(R.string.read_export_hex_error))
+                refreshHistory()
+                return
+            }
+            pendingExportTimestamp = timestamp
+            val defaultName = "silica_$timestamp.hex"
+            exportHexLauncher.launch(defaultName)
+        }
     }
 
     private fun refreshHistory() {
@@ -445,8 +510,111 @@ class TabFragment : Fragment() {
         val historyTabView = historyView ?: return
         val context = context ?: return
         val entries = historyController.getHistory(context)
-        historyTabView.renderHistory(entries)
+        val exportable = historyController.getSystemBlockTimestamps(context)
+        exportableHistoryTimestamps = exportable
+        historyTabView.renderHistory(entries, exportable)
     }
+
+    private fun refreshSystemBlockExportAvailability() {
+        val context = context ?: return
+        val latest = HistoryLogger.getLatestSystemBlockEntry(context)
+        lastSystemBlockTimestamp = latest?.timestamp
+        hasSystemBlockSnapshot = latest != null
+        readView?.setExportEnabled(hasSystemBlockSnapshot)
+    }
+
+    private fun handleHexExportResult(uri: Uri?) {
+        val timestamp = pendingExportTimestamp
+        pendingExportTimestamp = null
+        if (uri == null || timestamp == null) {
+            showToast(getString(R.string.read_export_hex_cancelled))
+            return
+        }
+        val context = context ?: return
+        val entry = HistoryLogger.getSystemBlockEntry(context, timestamp)
+        if (entry == null) {
+            showToast(getString(R.string.read_export_hex_error))
+            refreshSystemBlockExportAvailability()
+            return
+        }
+        val success = HistoryLogger.exportSystemBlockEntry(context, entry, uri)
+        if (success) {
+            showToast(
+                getString(
+                    R.string.read_export_hex_success,
+                    uri.lastPathSegment ?: "system_blocks.hex"
+                )
+            )
+        } else {
+            showToast(getString(R.string.read_export_hex_error))
+        }
+    }
+
+    private fun handleHexImportResult(uri: Uri?) {
+        if (uri == null) {
+            showToast(getString(R.string.write_import_hex_cancelled))
+            return
+        }
+        val context = context ?: return
+        val raw = try {
+            context.contentResolver.openInputStream(uri)?.bufferedReader()?.use { reader ->
+                reader.readText()
+            }
+        } catch (_: IOException) {
+            null
+        }
+        if (raw.isNullOrBlank()) {
+            showToast(getString(R.string.write_import_hex_invalid))
+            return
+        }
+        val payload = SystemBlockHexCodec.decode(raw)
+        if (payload == null || payload.blocks.isEmpty()) {
+            showToast(getString(R.string.write_import_hex_invalid))
+            return
+        }
+        startHexFileWrite(uri, payload)
+    }
+
+    private fun startHexFileWrite(uri: Uri, payload: SystemBlockHexCodec.HexPayload) {
+        val activity = activity ?: return
+        val blocks = payload.blocks.map {
+            WriteController.WriteRequest.RawBlockPayload(it.blockNumber, it.data)
+        }
+        if (blocks.isEmpty()) {
+            showToast(getString(R.string.write_import_hex_invalid))
+            return
+        }
+        val request = WriteController.WriteRequest.RawBlockBatch(blocks)
+        pendingWriteRequest = request
+        writeView?.showResultMessage(
+            getString(
+                R.string.write_import_hex_ready,
+                blocks.size,
+                getDisplayNameForUri(uri)
+            )
+        )
+        writeView?.showRawLog(getString(R.string.write_raw_log_placeholder))
+        writeView?.setWritingInProgress(true)
+        writeController.startWriting(activity, request, writeListener)
+    }
+
+    private fun getDisplayNameForUri(uri: Uri): String {
+        val context = context ?: return uri.lastPathSegment ?: "system_blocks.hex"
+        var displayName: String? = null
+        context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+            val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+            if (index != -1 && cursor.moveToFirst()) {
+                displayName = cursor.getString(index)
+            }
+        }
+        return displayName ?: uri.lastPathSegment ?: "system_blocks.hex"
+    }
+
+    private fun showToast(message: String) {
+        val context = context ?: return
+        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+    }
+
 
     private data class ReadRequestMetadata(
         val blockNumbers: List<Int>,

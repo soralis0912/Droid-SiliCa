@@ -131,6 +131,15 @@
                         android:text="@string/read_action_stop" />
                 </LinearLayout>
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/readExportHexButton"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:enabled="false"
+                    android:text="@string/read_action_export_hex" />
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"

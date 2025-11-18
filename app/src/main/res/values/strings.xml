@@ -7,6 +7,7 @@
     <string name="read_option_include_blocks">Read specified system blocks</string>
     <string name="read_action_start">Start Reading</string>
     <string name="read_action_stop">Stop</string>
+    <string name="read_action_export_hex">Export last read (.hex)</string>
     <string name="read_result_label">Result</string>
     <string name="read_result_placeholder">Awaiting NFC tag...</string>
     <string name="read_result_starting">Reading blocks: %1$s\nPlease tap a SiliCa card.</string>
@@ -27,6 +28,10 @@
     <string name="read_block_input_invalid">Invalid block \"%1$s\". Use decimal values between 0 and 255.</string>
     <string name="read_result_no_system_codes">None</string>
     <string name="read_result_no_service_codes">None</string>
+    <string name="read_export_hex_success">Exported to %1$s</string>
+    <string name="read_export_hex_error">Unable to export system blocks.</string>
+    <string name="read_export_hex_none">No system block data available.</string>
+    <string name="read_export_hex_cancelled">Export cancelled.</string>
     <string name="write_controls_title">Write Options</string>
     <string name="write_controls_description">Send SiliCa metadata updates or raw blocks using the same commands as the CLI tool.</string>
     <string name="write_command_hint">Command</string>
@@ -46,10 +51,11 @@
     <string name="write_system_helper">Enter up to 4 system codes (e.g. &quot;12FC C000&quot;).</string>
     <string name="write_service_hint">Service codes (hex pairs)</string>
     <string name="write_service_helper">Enter up to 4 service codes (e.g. &quot;100B 200B&quot;).</string>
-    <string name="write_block_hint">Block number (decimal 0-11)</string>
+    <string name="write_block_hint">Block number (decimal 0-255)</string>
     <string name="write_raw_data_hint">Block data (32 hex chars)</string>
     <string name="write_action_start">Start Writing</string>
     <string name="write_action_stop">Cancel</string>
+    <string name="write_action_hex_file">Write from .hex file</string>
     <string name="write_action_randomize">Randomize</string>
     <string name="write_result_label">Status</string>
     <string name="write_result_placeholder">Select a command and press Start to write.</string>
@@ -60,10 +66,13 @@
     <string name="write_result_error">Write failed: %1$s</string>
     <string name="write_result_cancelled">Write cancelled.</string>
     <string name="write_result_no_nfc">NFC is unavailable on this device.</string>
+    <string name="write_import_hex_cancelled">File selection cancelled.</string>
+    <string name="write_import_hex_invalid">Selected file is not a valid .hex export.</string>
+    <string name="write_import_hex_ready">Writing %1$d block(s) from %2$s.\nHold the card near the device.</string>
     <string name="write_error_invalid_hex">Invalid hex data.</string>
     <string name="write_error_idm_length">IDm must be 8 bytes (16 hex characters).</string>
     <string name="write_error_pmm_length">PMm must be 8 bytes (16 hex characters).</string>
-    <string name="write_error_block_range">Block number must be between 0 and 11.</string>
+    <string name="write_error_block_range">Block number must be between 0 and 255.</string>
     <string name="write_error_raw_length">Block data must be 16 bytes (32 hex characters).</string>
     <string name="write_error_code_required">Enter at least one code.</string>
     <string name="write_error_code_limit">A maximum of %1$d codes is allowed.</string>
@@ -82,5 +91,6 @@
     <string name="history_action_copy">Copy</string>
     <string name="history_action_delete">Delete</string>
     <string name="history_action_clear_all">Clear All</string>
+    <string name="history_action_export_hex">Export .hex</string>
     <string name="history_copy_confirmation">History entry copied.</string>
 </resources>

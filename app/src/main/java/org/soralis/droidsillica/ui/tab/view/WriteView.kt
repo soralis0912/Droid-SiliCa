@@ -18,6 +18,7 @@ class WriteView(
     interface Callbacks {
         fun onStartWriting(request: WriteController.WriteRequest)
         fun onCancelWriting()
+        fun onWriteHexFileRequested()
     }
 
     private enum class CommandOption {
@@ -36,6 +37,7 @@ class WriteView(
         binding.writeCancelButton.setOnClickListener { handleCancel() }
         binding.writeIdmRandomButton.setOnClickListener { randomizeIdm() }
         binding.writePmmRandomButton.setOnClickListener { randomizePmm() }
+        binding.writeHexFileButton.setOnClickListener { callbacks?.onWriteHexFileRequested() }
         showOption(currentOption)
         binding.writeResultText.text =
             binding.root.context.getString(R.string.write_result_placeholder)
@@ -242,6 +244,7 @@ class WriteView(
     fun setWritingInProgress(inProgress: Boolean) {
         binding.writeStartButton.isEnabled = !inProgress
         binding.writeCancelButton.isEnabled = inProgress
+        binding.writeHexFileButton.isEnabled = !inProgress
         setFieldGroupEnabled(!inProgress)
     }
 

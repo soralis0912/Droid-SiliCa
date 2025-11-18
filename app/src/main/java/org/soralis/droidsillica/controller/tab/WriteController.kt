@@ -31,6 +31,8 @@ class WriteController {
         data class SystemCodes(val codes: List<Int>) : WriteRequest()
         data class ServiceCodes(val codes: List<Int>) : WriteRequest()
         data class RawBlock(val blockNumber: Int, val data: ByteArray) : WriteRequest()
+        data class RawBlockPayload(val blockNumber: Int, val data: ByteArray)
+        data class RawBlockBatch(val blocks: List<RawBlockPayload>) : WriteRequest()
     }
 
     class WriteException(
@@ -98,17 +100,20 @@ class WriteController {
         try {
             nfcF.connect()
             nfcF.timeout = timeoutMillis
-            val (blockNumber, payload) = buildPayload(request)
+            val payloads = buildPayloads(request)
             val idm = tag.id.copyOf()
-            val writeCommand = buildWriteCommand(idm, blockNumber, payload)
-            requestSnapshot = writeCommand.copyOf()
-            val response = nfcF.transceive(writeCommand)
-            rawLog += RawExchange(
-                label = LABEL_WRITE_WITHOUT_ENCRYPTION,
-                request = requestSnapshot.copyOf(),
-                response = response.copyOf()
-            )
-            parseWriteResponse(response, rawLog.toList())
+            for (payload in payloads) {
+                val writeCommand = buildWriteCommand(idm, payload.blockNumber, payload.data)
+                val currentRequest = writeCommand.copyOf()
+                requestSnapshot = currentRequest
+                val response = nfcF.transceive(writeCommand)
+                rawLog += RawExchange(
+                    label = LABEL_WRITE_WITHOUT_ENCRYPTION,
+                    request = currentRequest.copyOf(),
+                    response = response.copyOf()
+                )
+                parseWriteResponse(response, rawLog.toList())
+            }
             return WriteResult(rawExchanges = rawLog.toList())
         } catch (io: IOException) {
             if (requestSnapshot != null && rawLog.isEmpty()) {
@@ -165,14 +170,18 @@ class WriteController {
         sessionListener = null
     }
 
-    private fun buildPayload(request: WriteRequest): Pair<Int, ByteArray> =
+    private fun buildPayloads(request: WriteRequest): List<WriteRequest.RawBlockPayload> =
         when (request) {
             is WriteRequest.Idm -> {
                 val idmBytes = request.idm
                 require(idmBytes.size == IDM_LENGTH) { "IDm must be 8 bytes" }
                 val pmmBytes = request.pmm ?: DEFAULT_PMM
                 val finalPmm = if (pmmBytes.size == PMM_LENGTH) pmmBytes else DEFAULT_PMM
-                BLOCK_IDM to (idmBytes + finalPmm)
+                val payload = ByteArray(BLOCK_SIZE).apply {
+                    System.arraycopy(idmBytes, 0, this, 0, idmBytes.size)
+                    System.arraycopy(finalPmm, 0, this, idmBytes.size, PMM_LENGTH)
+                }
+                listOf(WriteRequest.RawBlockPayload(BLOCK_IDM, payload))
             }
 
             is WriteRequest.SystemCodes -> {
@@ -183,7 +192,7 @@ class WriteController {
                     payload[offset++] = ((code shr 8) and 0xFF).toByte()
                     payload[offset++] = (code and 0xFF).toByte()
                 }
-                BLOCK_SYSTEM_CODES to payload
+                listOf(WriteRequest.RawBlockPayload(BLOCK_SYSTEM_CODES, payload))
             }
 
             is WriteRequest.ServiceCodes -> {
@@ -194,15 +203,26 @@ class WriteController {
                     payload[offset++] = (code and 0xFF).toByte()
                     payload[offset++] = ((code shr 8) and 0xFF).toByte()
                 }
-                BLOCK_SERVICE_CODES to payload
+                listOf(WriteRequest.RawBlockPayload(BLOCK_SERVICE_CODES, payload))
             }
 
             is WriteRequest.RawBlock -> {
-                require(request.blockNumber in 0..MAX_RAW_BLOCK) { "Invalid block number" }
-                require(request.data.size == BLOCK_SIZE) { "Raw data must be 16 bytes" }
-                request.blockNumber to request.data
+                validateRawBlock(request.blockNumber, request.data)
+                listOf(WriteRequest.RawBlockPayload(request.blockNumber, request.data))
+            }
+
+            is WriteRequest.RawBlockBatch -> {
+                request.blocks.forEach { block ->
+                    validateRawBlock(block.blockNumber, block.data)
+                }
+                request.blocks
             }
         }
+
+    private fun validateRawBlock(blockNumber: Int, data: ByteArray) {
+        require(blockNumber in 0..MAX_RAW_BLOCK) { "Invalid block number" }
+        require(data.size == BLOCK_SIZE) { "Raw data must be 16 bytes" }
+    }
 
     private fun buildWriteCommand(idm: ByteArray, blockNumber: Int, payload: ByteArray): ByteArray {
         require(idm.size == IDM_LENGTH) { "Unexpected IDm length: ${idm.size}" }
@@ -260,7 +280,7 @@ class WriteController {
     companion object {
         const val MAX_SYSTEM_CODES = 4
         const val MAX_SERVICE_CODES = 4
-        const val MAX_RAW_BLOCK = 11
+        const val MAX_RAW_BLOCK = 0xFF
         private const val KEY = "write"
         private const val DEFAULT_TIMEOUT_MS = 1000
         private const val IDM_LENGTH = 8

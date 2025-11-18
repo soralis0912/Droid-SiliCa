@@ -9,14 +9,19 @@ class ReadView(
     private val callbacks: Callbacks? = null
 ) : BaseTabView(readBinding.toTabUiComponents()) {
 
+    private var exportEnabled = false
+    private var readingInProgress = false
+
     interface Callbacks {
         fun onStartReading(blockNumbers: List<Int>, readLastErrorCommand: Boolean)
         fun onStopReading()
+        fun onExportSystemBlocks()
     }
 
     init {
         readBinding.readStartButton.setOnClickListener { handleStart() }
         readBinding.readStopButton.setOnClickListener { handleStop() }
+        readBinding.readExportHexButton.setOnClickListener { callbacks?.onExportSystemBlocks() }
     }
 
     override fun render(content: TabContent) {
@@ -26,6 +31,7 @@ class ReadView(
             readBinding.root.context.getString(R.string.read_result_placeholder)
         readBinding.readRawLogText.text =
             readBinding.root.context.getString(R.string.read_raw_log_placeholder)
+        setExportEnabled(false)
     }
 
     private fun handleStart() {
@@ -86,8 +92,19 @@ class ReadView(
     }
 
     fun setReadingInProgress(inProgress: Boolean) {
+        readingInProgress = inProgress
         readBinding.readStartButton.isEnabled = !inProgress
         readBinding.readStopButton.isEnabled = inProgress
+        updateExportButtonState()
+    }
+
+    fun setExportEnabled(enabled: Boolean) {
+        exportEnabled = enabled
+        updateExportButtonState()
+    }
+
+    private fun updateExportButtonState() {
+        readBinding.readExportHexButton.isEnabled = exportEnabled && !readingInProgress
     }
 
     fun showResultMessage(message: CharSequence) {
