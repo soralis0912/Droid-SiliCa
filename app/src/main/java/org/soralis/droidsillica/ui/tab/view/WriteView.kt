@@ -39,12 +39,16 @@ class WriteView(
         showOption(currentOption)
         binding.writeResultText.text =
             binding.root.context.getString(R.string.write_result_placeholder)
+        binding.writeRawLogText.text =
+            binding.root.context.getString(R.string.write_raw_log_placeholder)
     }
 
     override fun render(content: TabContent) {
         super.render(content)
         binding.writeResultText.text =
             binding.root.context.getString(R.string.write_result_placeholder)
+        binding.writeRawLogText.text =
+            binding.root.context.getString(R.string.write_raw_log_placeholder)
     }
 
     private fun setupCommandDropdown() {
@@ -76,6 +80,8 @@ class WriteView(
         val request = buildWriteRequest() ?: return
         binding.writeResultText.text =
             binding.root.context.getString(R.string.write_result_waiting)
+        binding.writeRawLogText.text =
+            binding.root.context.getString(R.string.write_raw_log_placeholder)
         setWritingInProgress(true)
         callbacks?.onStartWriting(request)
     }
@@ -241,6 +247,10 @@ class WriteView(
 
     fun showResultMessage(message: CharSequence) {
         binding.writeResultText.text = message
+    }
+
+    fun showRawLog(message: CharSequence) {
+        binding.writeRawLogText.text = message
     }
 
     private fun clearErrors() {

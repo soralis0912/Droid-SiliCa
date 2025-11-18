@@ -24,6 +24,8 @@ class ReadView(
         setReadingInProgress(false)
         readBinding.readResultText.text =
             readBinding.root.context.getString(R.string.read_result_placeholder)
+        readBinding.readRawLogText.text =
+            readBinding.root.context.getString(R.string.read_raw_log_placeholder)
     }
 
     private fun handleStart() {
@@ -42,6 +44,7 @@ class ReadView(
                 blockNumbers.joinToString(", ")
             )
         }
+        readBinding.readRawLogText.text = context.getString(R.string.read_raw_log_placeholder)
         setReadingInProgress(true)
         callbacks?.onStartReading(blockNumbers, shouldReadLastError)
     }
@@ -89,5 +92,9 @@ class ReadView(
 
     fun showResultMessage(message: CharSequence) {
         readBinding.readResultText.text = message
+    }
+
+    fun showRawLog(message: CharSequence) {
+        readBinding.readRawLogText.text = message
     }
 }

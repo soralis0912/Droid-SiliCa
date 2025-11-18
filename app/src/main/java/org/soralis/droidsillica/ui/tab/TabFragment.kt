@@ -135,6 +135,7 @@ class TabFragment : Fragment() {
     private val readListener = object : ReadController.Listener {
         override fun onWaitingForTag() {
             readView?.showResultMessage(getString(R.string.read_result_waiting_for_tag))
+            readView?.showRawLog(getString(R.string.read_raw_log_placeholder))
         }
 
         override fun onReadSuccess(result: ReadController.ReadResult) {
@@ -159,24 +160,27 @@ class TabFragment : Fragment() {
                     result.formattedPmm,
                     systemCodesText,
                     serviceCodesText,
-                    commandText,
-                    rawLogText
+                    commandText
                 )
             )
+            readView?.showRawLog(rawLogText)
             readView?.setReadingInProgress(false)
         }
 
         override fun onReadError(message: String) {
             readView?.showResultMessage(getString(R.string.read_result_error, message))
+            readView?.showRawLog(getString(R.string.read_raw_log_placeholder))
             readView?.setReadingInProgress(false)
         }
 
         override fun onReadingStopped() {
+            readView?.showRawLog(getString(R.string.read_raw_log_placeholder))
             readView?.setReadingInProgress(false)
         }
 
         override fun onNfcUnavailable() {
             readView?.showResultMessage(getString(R.string.read_result_no_nfc))
+            readView?.showRawLog(getString(R.string.read_raw_log_placeholder))
             readView?.setReadingInProgress(false)
         }
     }
@@ -195,31 +199,33 @@ class TabFragment : Fragment() {
     private val writeListener = object : WriteController.Listener {
         override fun onWaitingForTag() {
             writeView?.showResultMessage(getString(R.string.write_result_waiting))
+            writeView?.showRawLog(getString(R.string.write_raw_log_placeholder))
         }
 
         override fun onWriteSuccess(result: WriteController.WriteResult) {
             val rawLogText = formatRawLog(result.rawExchanges)
             writeView?.showResultMessage(
-                getString(
-                    R.string.write_result_success_with_raw,
-                    rawLogText
-                )
+                getString(R.string.write_result_success)
             )
+            writeView?.showRawLog(rawLogText)
             writeView?.setWritingInProgress(false)
         }
 
         override fun onWriteError(message: String) {
             writeView?.showResultMessage(getString(R.string.write_result_error, message))
+            writeView?.showRawLog(getString(R.string.write_raw_log_placeholder))
             writeView?.setWritingInProgress(false)
         }
 
         override fun onWriteStopped() {
             writeView?.showResultMessage(getString(R.string.write_result_cancelled))
+            writeView?.showRawLog(getString(R.string.write_raw_log_placeholder))
             writeView?.setWritingInProgress(false)
         }
 
         override fun onNfcUnavailable() {
             writeView?.showResultMessage(getString(R.string.write_result_no_nfc))
+            writeView?.showRawLog(getString(R.string.write_raw_log_placeholder))
             writeView?.setWritingInProgress(false)
         }
     }
