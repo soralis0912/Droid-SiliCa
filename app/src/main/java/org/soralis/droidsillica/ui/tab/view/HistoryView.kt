@@ -1,24 +1,43 @@
 package org.soralis.droidsillica.ui.tab.view
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.TextView
+import android.widget.Toast
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
 import org.soralis.droidsillica.R
 import org.soralis.droidsillica.databinding.FragmentTabHistoryBinding
+import org.soralis.droidsillica.databinding.ItemHistoryEntryBinding
 import org.soralis.droidsillica.util.HistoryLogger
 
 class HistoryView(
-    private val binding: FragmentTabHistoryBinding
+    private val binding: FragmentTabHistoryBinding,
+    private val callbacks: Callbacks
 ) : BaseTabView(binding.toTabUiComponents()) {
+
+    interface Callbacks {
+        fun onDeleteEntry(timestamp: Long)
+        fun onClearHistory()
+    }
+
+    init {
+        binding.buttonClearHistory.setOnClickListener {
+            callbacks.onClearHistory()
+        }
+    }
 
     fun renderHistory(entries: List<HistoryLogger.HistoryLogEntry>) {
         val container = binding.actionList
         val inflater = LayoutInflater.from(container.context)
         container.removeAllViews()
-        if (entries.isEmpty()) {
+        val hasEntries = entries.isNotEmpty()
+        binding.buttonClearHistory.isEnabled = hasEntries
+        if (!hasEntries) {
             val emptyView =
                 inflater.inflate(android.R.layout.simple_list_item_1, container, false) as TextView
             emptyView.text = container.context.getString(R.string.history_empty_state)
@@ -28,13 +47,11 @@ class HistoryView(
         }
         val formatter = DateFormat.getDateTimeInstance(DateFormat.SHORT, DateFormat.MEDIUM)
         entries.asReversed().forEach { entry ->
-            val itemView = inflater.inflate(android.R.layout.simple_list_item_2, container, false)
-            val titleView = itemView.findViewById<TextView>(android.R.id.text1)
-            val subtitleView = itemView.findViewById<TextView>(android.R.id.text2)
+            val entryBinding = ItemHistoryEntryBinding.inflate(inflater, container, false)
             val operationLabel = formatOperation(entry.operation)
             val statusLabel = formatStatus(entry.status)
             val timestamp = formatter.format(Date(entry.timestamp))
-            titleView.text = binding.root.context.getString(
+            entryBinding.historyEntryTitle.text = binding.root.context.getString(
                 R.string.history_entry_title_format,
                 operationLabel,
                 statusLabel,
@@ -48,12 +65,15 @@ class HistoryView(
             val rawDetail = entry.data.optString("rawResult").ifBlank {
                 binding.root.context.getString(R.string.history_empty_raw_fallback)
             }
-            subtitleView.text = binding.root.context.getString(
-                R.string.history_entry_detail_format,
-                resultDetail,
-                rawDetail
-            )
-            container.addView(itemView)
+            entryBinding.historyEntryResult.text = resultDetail
+            entryBinding.historyEntryRaw.text = rawDetail
+            entryBinding.buttonCopyHistory.setOnClickListener {
+                copyEntry(entry, operationLabel, statusLabel, timestamp, resultDetail, rawDetail)
+            }
+            entryBinding.buttonDeleteHistory.setOnClickListener {
+                callbacks.onDeleteEntry(entry.timestamp)
+            }
+            container.addView(entryBinding.root)
         }
         container.visibility = View.VISIBLE
     }
@@ -75,5 +95,28 @@ class HistoryView(
             "cancelled" -> context.getString(R.string.history_status_cancelled)
             else -> status
         }
+    }
+
+    private fun copyEntry(
+        entry: HistoryLogger.HistoryLogEntry,
+        operationLabel: String,
+        statusLabel: String,
+        timestamp: String,
+        resultDetail: String,
+        rawDetail: String
+    ) {
+        val context = binding.root.context
+        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+        val summary = buildString {
+            appendLine("Operation: $operationLabel")
+            appendLine("Status: $statusLabel")
+            appendLine("Timestamp: $timestamp")
+            appendLine("Summary: ${entry.summary}")
+            appendLine("Result: $resultDetail")
+            append("Raw: $rawDetail")
+        }
+        clipboard?.setPrimaryClip(ClipData.newPlainText("History Entry", summary))
+        Toast.makeText(context, context.getString(R.string.history_copy_confirmation), Toast.LENGTH_SHORT)
+            .show()
     }
 }

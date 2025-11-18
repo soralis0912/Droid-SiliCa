@@ -128,7 +128,10 @@ class TabFragment : Fragment() {
                 writeCallbacks
             ).also { writeView = it }
             KEY_MANUAL -> ManualView(_manualBinding ?: error("Missing manual binding"))
-            KEY_HISTORY -> HistoryView(_historyBinding ?: error("Missing history binding")).also {
+            KEY_HISTORY -> HistoryView(
+                _historyBinding ?: error("Missing history binding"),
+                historyCallbacks
+            ).also {
                 historyView = it
             }
             else -> BaseTabView(
@@ -197,6 +200,7 @@ class TabFragment : Fragment() {
                     rawLogText
                 )
             }
+            refreshHistory()
             pendingReadRequest = null
         }
 
@@ -223,6 +227,7 @@ class TabFragment : Fragment() {
                     rawLogText
                 )
             }
+            refreshHistory()
             pendingReadRequest = null
         }
 
@@ -245,6 +250,7 @@ class TabFragment : Fragment() {
                     )
                 }
             }
+            refreshHistory()
             pendingReadRequest = null
         }
 
@@ -267,6 +273,7 @@ class TabFragment : Fragment() {
                     rawLogPlaceholder
                 )
             }
+            refreshHistory()
             pendingReadRequest = null
         }
     }
@@ -305,6 +312,7 @@ class TabFragment : Fragment() {
                     rawLogText
                 )
             }
+            refreshHistory()
             pendingWriteRequest = null
         }
 
@@ -329,6 +337,7 @@ class TabFragment : Fragment() {
                     rawLogText
                 )
             }
+            refreshHistory()
             pendingWriteRequest = null
         }
 
@@ -350,6 +359,7 @@ class TabFragment : Fragment() {
                     )
                 }
             }
+            refreshHistory()
             pendingWriteRequest = null
         }
 
@@ -370,6 +380,7 @@ class TabFragment : Fragment() {
                     rawPlaceholder
                 )
             }
+            refreshHistory()
             pendingWriteRequest = null
         }
     }
@@ -412,6 +423,20 @@ class TabFragment : Fragment() {
                 ARG_DESCRIPTION to content.description,
                 ARG_ACTIONS to content.actions.toTypedArray()
             )
+        }
+    }
+
+    private val historyCallbacks = object : HistoryView.Callbacks {
+        override fun onDeleteEntry(timestamp: Long) {
+            val context = context ?: return
+            historyController.deleteHistoryEntry(context, timestamp)
+            refreshHistory()
+        }
+
+        override fun onClearHistory() {
+            val context = context ?: return
+            historyController.clearHistory(context)
+            refreshHistory()
         }
     }
 

@@ -14,4 +14,12 @@ class HistoryController {
 
     fun getHistory(context: Context): List<HistoryLogger.HistoryLogEntry> =
         HistoryLogger.loadEntries(context)
+
+    fun deleteHistoryEntry(context: Context, timestamp: Long) {
+        HistoryLogger.deleteEntry(context, timestamp)
+    }
+
+    fun clearHistory(context: Context) {
+        HistoryLogger.clearHistory(context)
+    }
 }

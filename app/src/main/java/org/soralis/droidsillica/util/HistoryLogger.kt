@@ -190,6 +190,29 @@ object HistoryLogger {
         return entries
     }
 
+    fun deleteEntry(context: Context, timestamp: Long) {
+        val appContext = context.applicationContext
+        synchronized(lock) {
+            val file = File(appContext.filesDir, HISTORY_FILE_NAME)
+            val existing = readExistingEntries(file)
+            val filtered = JSONArray()
+            for (index in 0 until existing.length()) {
+                val entryObject = existing.optJSONObject(index) ?: continue
+                if (entryObject.optLong("timestamp") == timestamp) continue
+                filtered.put(entryObject)
+            }
+            writeEntries(file, filtered)
+        }
+    }
+
+    fun clearHistory(context: Context) {
+        val appContext = context.applicationContext
+        synchronized(lock) {
+            val file = File(appContext.filesDir, HISTORY_FILE_NAME)
+            writeEntries(file, JSONArray())
+        }
+    }
+
     private fun persist(context: Context, entry: HistoryLogEntry) {
         val appContext = context.applicationContext
         executor.execute {
@@ -202,11 +225,7 @@ object HistoryLogger {
                     trimmed.put(existing.get(index))
                 }
                 trimmed.put(entry.toJson())
-                try {
-                    file.writeText(trimmed.toString())
-                } catch (_: IOException) {
-                    // Ignore logging errors to avoid impacting the UI flow.
-                }
+                writeEntries(file, trimmed)
             }
         }
     }
@@ -223,6 +242,14 @@ object HistoryLogger {
             JSONArray(contents)
         } catch (_: JSONException) {
             JSONArray()
+        }
+    }
+
+    private fun writeEntries(file: File, entries: JSONArray) {
+        try {
+            file.writeText(entries.toString())
+        } catch (_: IOException) {
+            // Ignore logging errors so UI flow is unaffected.
         }
     }
 
