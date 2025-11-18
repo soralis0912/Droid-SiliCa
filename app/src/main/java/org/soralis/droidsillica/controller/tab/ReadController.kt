@@ -374,19 +374,15 @@ class ReadController {
                 response = response.copyOf()
             )
         )
-        if (response.size < RESPONSE_SYSTEM_CODE_HEADER || response[1] != RESPONSE_SYSTEM_CODE) {
+        val payloadOffset = RESPONSE_HEADER_BASE
+        if (response.size < payloadOffset + 1 || response[1] != RESPONSE_SYSTEM_CODE) {
             return emptyList()
         }
-        val statusFlag1 = response[10].toPositiveInt()
-        val statusFlag2 = response[11].toPositiveInt()
-        if (statusFlag1 != 0 || statusFlag2 != 0) {
-            return emptyList()
-        }
-        val codeCount = response[12].toPositiveInt()
+        val codeCount = response[payloadOffset].toPositiveInt()
         val codes = mutableListOf<Int>()
-        var offset = 13
+        var offset = payloadOffset + 1
         repeat(codeCount) {
-            if (offset + 1 >= response.size) return codes
+            if (offset + 1 >= response.size) return@repeat
             val code = response[offset].toPositiveInt() or (response[offset + 1].toPositiveInt() shl 8)
             codes += code
             offset += 2
@@ -400,6 +396,7 @@ class ReadController {
         rawLog: MutableList<RawExchange>? = null
     ): List<Int> {
         val codes = mutableListOf<Int>()
+        val payloadBase = RESPONSE_HEADER_BASE
         for (order in 0 until MAX_SERVICE_SEARCH) {
             val command = ByteArray(1 + 1 + IDM_LENGTH + 2)
             command[0] = command.size.toByte()
@@ -415,25 +412,28 @@ class ReadController {
             }
             rawLog?.add(
                 RawExchange(
-                    label = String.format(
-                        Locale.US,
-                        LABEL_SEARCH_SERVICE_TEMPLATE,
-                        order + 1
-                    ),
+                    label = String.format(Locale.US, LABEL_SEARCH_SERVICE_TEMPLATE, order + 1),
                     request = requestSnapshot,
                     response = response.copyOf()
                 )
             )
-            if (response.size < RESPONSE_SERVICE_CODE_SIZE || response[1] != RESPONSE_SERVICE_CODE) {
+            if (response.size < payloadBase + 2 || response[1] != RESPONSE_SERVICE_CODE) {
                 break
             }
-            val statusFlag1 = response[10].toPositiveInt()
-            val statusFlag2 = response[11].toPositiveInt()
-            if (statusFlag1 != 0 || statusFlag2 != 0) {
+            var offset = payloadBase
+            if (response.size - offset >= 4) {
+                val statusFlag1 = response[offset].toPositiveInt()
+                val statusFlag2 = response[offset + 1].toPositiveInt()
+                offset += 2
+                if (statusFlag1 != 0 || statusFlag2 != 0) {
+                    break
+                }
+            }
+            if (response.size - offset < 2) {
                 break
             }
             val serviceCode =
-                response[12].toPositiveInt() or (response[13].toPositiveInt() shl 8)
+                response[offset].toPositiveInt() or (response[offset + 1].toPositiveInt() shl 8)
             codes += serviceCode
         }
         return codes
@@ -450,8 +450,7 @@ class ReadController {
         private const val BLOCK_LIST_ELEMENT_SIZE = 2
         private const val BLOCK_SIZE = 16
         private const val RESPONSE_HEADER_SIZE = 13
-        private const val RESPONSE_SYSTEM_CODE_HEADER = 13
-        private const val RESPONSE_SERVICE_CODE_SIZE = 14
+        private const val RESPONSE_HEADER_BASE = 2 + IDM_LENGTH
         private const val MAX_SERVICE_SEARCH = 32
         private val COMMAND_READ = 0x06.toByte()
         private val RESPONSE_READ = 0x07.toByte()
