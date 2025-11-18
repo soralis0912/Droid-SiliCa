@@ -15,6 +15,7 @@ import org.soralis.droidsillica.databinding.FragmentTabManualBinding
 import org.soralis.droidsillica.databinding.FragmentTabReadBinding
 import org.soralis.droidsillica.databinding.FragmentTabWriteBinding
 import org.soralis.droidsillica.model.TabContent
+import org.soralis.droidsillica.model.RawExchange
 import org.soralis.droidsillica.ui.tab.view.BaseTabView
 import org.soralis.droidsillica.ui.tab.view.HistoryView
 import org.soralis.droidsillica.ui.tab.view.ManualView
@@ -142,6 +143,7 @@ class TabFragment : Fragment() {
             } else {
                 getString(R.string.read_result_no_blocks)
             }
+            val rawLogText = formatRawLog(result.rawExchanges)
             val systemCodesText = formatCodeList(
                 result.systemCodes,
                 getString(R.string.read_result_no_system_codes)
@@ -157,7 +159,8 @@ class TabFragment : Fragment() {
                     result.formattedPmm,
                     systemCodesText,
                     serviceCodesText,
-                    commandText
+                    commandText,
+                    rawLogText
                 )
             )
             readView?.setReadingInProgress(false)
@@ -194,8 +197,14 @@ class TabFragment : Fragment() {
             writeView?.showResultMessage(getString(R.string.write_result_waiting))
         }
 
-        override fun onWriteSuccess() {
-            writeView?.showResultMessage(getString(R.string.write_result_success))
+        override fun onWriteSuccess(result: WriteController.WriteResult) {
+            val rawLogText = formatRawLog(result.rawExchanges)
+            writeView?.showResultMessage(
+                getString(
+                    R.string.write_result_success_with_raw,
+                    rawLogText
+                )
+            )
             writeView?.setWritingInProgress(false)
         }
 
@@ -219,6 +228,20 @@ class TabFragment : Fragment() {
         if (codes.isEmpty()) return emptyText
         return codes.joinToString(", ") { code ->
             String.format(Locale.US, "0x%04X", code)
+        }
+    }
+
+    private fun formatRawLog(exchanges: List<RawExchange>): String {
+        if (exchanges.isEmpty()) {
+            return getString(R.string.raw_data_unavailable)
+        }
+        return exchanges.joinToString(separator = "\n\n") { exchange ->
+            getString(
+                R.string.raw_log_entry,
+                exchange.label,
+                exchange.formattedRequest.ifEmpty { getString(R.string.raw_data_unavailable) },
+                exchange.formattedResponse.ifEmpty { getString(R.string.raw_data_unavailable) }
+            )
         }
     }
 

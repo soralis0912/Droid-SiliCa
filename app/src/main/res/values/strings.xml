@@ -16,8 +16,10 @@
     <string name="read_result_waiting_for_tag">Ready. Hold the card near the device.</string>
     <string name="read_result_no_nfc">NFC is unavailable on this device.</string>
     <string name="read_result_error">Read failed: %1$s</string>
-    <string name="read_result_success">IDm: %1$s\nPMm: %2$s\nSystem codes: %3$s\nService codes: %4$s\nLast error command: %5$s</string>
+    <string name="read_result_success">IDm: %1$s\nPMm: %2$s\nSystem codes: %3$s\nService codes: %4$s\nLast error command: %5$s\nRAW log:\n%6$s</string>
     <string name="read_result_no_blocks">No blocks were requested.</string>
+    <string name="raw_data_unavailable">Unavailable</string>
+    <string name="raw_log_entry">%1$s\nREQ: %2$s\nRES: %3$s</string>
     <string name="read_block_input_hint">Blocks to read (decimal, comma separated)</string>
     <string name="read_block_input_helper">Add additional decimal block numbers separated by commas or spaces. Leave blank to use the selected defaults.</string>
     <string name="read_block_input_invalid">Invalid block \"%1$s\". Use decimal values between 0 and 255.</string>
@@ -50,6 +52,7 @@
     <string name="write_result_placeholder">Select a command and press Start to write.</string>
     <string name="write_result_waiting">Ready. Hold the tag to the device to write.</string>
     <string name="write_result_success">Write completed.</string>
+    <string name="write_result_success_with_raw">Write completed.\nRAW log:\n%1$s</string>
     <string name="write_result_error">Write failed: %1$s</string>
     <string name="write_result_cancelled">Write cancelled.</string>
     <string name="write_result_no_nfc">NFC is unavailable on this device.</string>

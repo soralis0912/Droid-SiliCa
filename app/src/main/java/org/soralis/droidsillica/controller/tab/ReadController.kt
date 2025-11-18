@@ -9,7 +9,9 @@ import android.os.Looper
 import java.io.IOException
 import java.lang.ref.WeakReference
 import java.util.Locale
+import org.soralis.droidsillica.model.RawExchange
 import org.soralis.droidsillica.model.TabContent
+import org.soralis.droidsillica.util.toLegacyHexString
 
 /**
  * Mirrors the behavior of the legacy read.py script by issuing FeliCa commands to inspect the
@@ -33,7 +35,8 @@ class ReadController {
         val statusFlag1: Int,
         val statusFlag2: Int,
         val blockData: ByteArray,
-        val lastErrorCommand: ByteArray
+        val lastErrorCommand: ByteArray,
+        val rawExchanges: List<RawExchange>
     ) {
         val formattedIdm: String = idm.toLegacyHexString()
         val formattedPmm: String = pmm.toLegacyHexString()
@@ -112,8 +115,9 @@ class ReadController {
             nfcF.timeout = timeoutMillis
             val idm = tag.id.copyOf()
             val pmm = nfcF.manufacturer.copyOf()
-            val systemCodes = requestSystemCodes(nfcF, idm)
-            val serviceCodes = requestServiceCodes(nfcF, idm)
+            val rawLog = mutableListOf<RawExchange>()
+            val systemCodes = requestSystemCodes(nfcF, idm, rawLog)
+            val serviceCodes = requestServiceCodes(nfcF, idm, rawLog)
             if (!readBlocks) {
                 return ReadResult(
                     idm = idm,
@@ -123,11 +127,21 @@ class ReadController {
                     statusFlag1 = 0,
                     statusFlag2 = 0,
                     blockData = ByteArray(0),
-                    lastErrorCommand = ByteArray(0)
+                    lastErrorCommand = ByteArray(0),
+                    rawExchanges = rawLog.toList()
                 )
             }
-            val response = nfcF.transceive(buildReadCommand(idm, pendingBlockNumbers))
-            return parseReadResponse(response, pmm, systemCodes, serviceCodes)
+            val request = buildReadCommand(idm, pendingBlockNumbers)
+            val requestSnapshot = request.copyOf()
+            val response = nfcF.transceive(request)
+            return parseReadResponse(
+                requestSnapshot,
+                response,
+                pmm,
+                systemCodes,
+                serviceCodes,
+                rawLog
+            )
         } catch (e: IOException) {
             throw ReadException("Unable to read the SiliCa system block", e)
         } finally {
@@ -174,10 +188,12 @@ class ReadController {
     }
 
     private fun parseReadResponse(
+        rawRequest: ByteArray,
         response: ByteArray,
         pmm: ByteArray,
         systemCodes: List<Int>,
-        serviceCodes: List<Int>
+        serviceCodes: List<Int>,
+        rawLog: MutableList<RawExchange>
     ): ReadResult {
         if (response.size < RESPONSE_HEADER_SIZE) {
             throw ReadException("Response too short: ${response.size} bytes")
@@ -213,6 +229,11 @@ class ReadController {
         } else {
             ByteArray(0)
         }
+        rawLog += RawExchange(
+            label = LABEL_READ_WITHOUT_ENCRYPTION,
+            request = rawRequest.copyOf(),
+            response = response.copyOf()
+        )
         return ReadResult(
             idm = idm,
             pmm = pmm,
@@ -221,7 +242,8 @@ class ReadController {
             statusFlag1 = statusFlag1,
             statusFlag2 = statusFlag2,
             blockData = blockData,
-            lastErrorCommand = lastCommand
+            lastErrorCommand = lastCommand,
+            rawExchanges = rawLog.toList()
         )
     }
 
@@ -257,16 +279,28 @@ class ReadController {
         sessionListener = null
     }
 
-    private fun requestSystemCodes(nfcF: NfcF, idm: ByteArray): List<Int> {
+    private fun requestSystemCodes(
+        nfcF: NfcF,
+        idm: ByteArray,
+        rawLog: MutableList<RawExchange>? = null
+    ): List<Int> {
         val command = ByteArray(1 + 1 + IDM_LENGTH)
         command[0] = command.size.toByte()
         command[1] = COMMAND_REQUEST_SYSTEM_CODE
         System.arraycopy(idm, 0, command, 2, IDM_LENGTH)
+        val requestSnapshot = command.copyOf()
         val response = try {
             nfcF.transceive(command)
         } catch (_: IOException) {
             return emptyList()
         }
+        rawLog?.add(
+            RawExchange(
+                label = LABEL_REQUEST_SYSTEM_CODES,
+                request = requestSnapshot,
+                response = response.copyOf()
+            )
+        )
         if (response.size < RESPONSE_SYSTEM_CODE_HEADER || response[1] != RESPONSE_SYSTEM_CODE) {
             return emptyList()
         }
@@ -287,7 +321,11 @@ class ReadController {
         return codes
     }
 
-    private fun requestServiceCodes(nfcF: NfcF, idm: ByteArray): List<Int> {
+    private fun requestServiceCodes(
+        nfcF: NfcF,
+        idm: ByteArray,
+        rawLog: MutableList<RawExchange>? = null
+    ): List<Int> {
         val codes = mutableListOf<Int>()
         for (order in 0 until MAX_SERVICE_SEARCH) {
             val command = ByteArray(1 + 1 + IDM_LENGTH + 2)
@@ -296,11 +334,23 @@ class ReadController {
             System.arraycopy(idm, 0, command, 2, IDM_LENGTH)
             command[10] = (order and 0xFF).toByte()
             command[11] = ((order shr 8) and 0xFF).toByte()
+            val requestSnapshot = command.copyOf()
             val response = try {
                 nfcF.transceive(command)
             } catch (_: IOException) {
                 break
             }
+            rawLog?.add(
+                RawExchange(
+                    label = String.format(
+                        Locale.US,
+                        LABEL_SEARCH_SERVICE_TEMPLATE,
+                        order + 1
+                    ),
+                    request = requestSnapshot,
+                    response = response.copyOf()
+                )
+            )
             if (response.size < RESPONSE_SERVICE_CODE_SIZE || response[1] != RESPONSE_SERVICE_CODE) {
                 break
             }
@@ -338,8 +388,8 @@ class ReadController {
         private val SERVICE_CODE_LIST = intArrayOf(0xFFFF)
         private val DEFAULT_BLOCKS = listOf(0xE0, 0xE1)
         private val BLOCK_LIST_ACCESS_MODE = 0x80.toByte()
+        private const val LABEL_REQUEST_SYSTEM_CODES = "Request System Codes"
+        private const val LABEL_SEARCH_SERVICE_TEMPLATE = "Search Service Codes #%d"
+        private const val LABEL_READ_WITHOUT_ENCRYPTION = "Read Without Encryption"
     }
 }
-
-private fun ByteArray.toLegacyHexString(): String =
-    joinToString(" ") { byte -> String.format(Locale.US, "%02X", byte.toInt() and 0xFF) }

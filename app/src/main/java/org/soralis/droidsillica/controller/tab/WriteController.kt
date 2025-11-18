@@ -9,6 +9,7 @@ import android.os.Looper
 import java.io.IOException
 import java.lang.ref.WeakReference
 import java.util.Locale
+import org.soralis.droidsillica.model.RawExchange
 import org.soralis.droidsillica.model.TabContent
 
 /**
@@ -19,7 +20,7 @@ class WriteController {
 
     interface Listener {
         fun onWaitingForTag()
-        fun onWriteSuccess()
+        fun onWriteSuccess(result: WriteResult)
         fun onWriteError(message: String)
         fun onWriteStopped()
         fun onNfcUnavailable()
@@ -33,6 +34,10 @@ class WriteController {
     }
 
     class WriteException(message: String, cause: Throwable? = null) : Exception(message, cause)
+
+    data class WriteResult(
+        val rawExchanges: List<RawExchange>
+    )
 
     private val mainHandler = Handler(Looper.getMainLooper())
     private var nfcAdapter: NfcAdapter? = null
@@ -82,7 +87,7 @@ class WriteController {
         tag: Tag,
         request: WriteRequest,
         timeoutMillis: Int = DEFAULT_TIMEOUT_MS
-    ) {
+    ): WriteResult {
         val nfcF = NfcF.get(tag) ?: throw WriteException("Tag is not a FeliCa/NfcF tag")
         try {
             nfcF.connect()
@@ -90,8 +95,17 @@ class WriteController {
             val (blockNumber, payload) = buildPayload(request)
             val idm = tag.id.copyOf()
             val writeCommand = buildWriteCommand(idm, blockNumber, payload)
+            val requestSnapshot = writeCommand.copyOf()
             val response = nfcF.transceive(writeCommand)
             parseWriteResponse(response)
+            val exchanges = listOf(
+                RawExchange(
+                    label = LABEL_WRITE_WITHOUT_ENCRYPTION,
+                    request = requestSnapshot,
+                    response = response.copyOf()
+                )
+            )
+            return WriteResult(rawExchanges = exchanges)
         } catch (io: IOException) {
             throw WriteException("Unable to write the SiliCa system block", io)
         } finally {
@@ -106,9 +120,9 @@ class WriteController {
     private val readerCallback = NfcAdapter.ReaderCallback { tag ->
         val request = pendingRequest ?: return@ReaderCallback
         try {
-            writeToTag(tag, request)
+            val result = writeToTag(tag, request)
             mainHandler.post {
-                sessionListener?.onWriteSuccess()
+                sessionListener?.onWriteSuccess(result)
                 stopReaderModeInternal(notifyStopped = false)
             }
         } catch (exception: WriteException) {
@@ -245,5 +259,6 @@ class WriteController {
             0xFF.toByte()
         )
         private const val DEFAULT_ERROR = "Write failed"
+        private const val LABEL_WRITE_WITHOUT_ENCRYPTION = "Write Without Encryption"
     }
 }
