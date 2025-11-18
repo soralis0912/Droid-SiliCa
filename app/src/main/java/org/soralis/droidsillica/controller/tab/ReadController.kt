@@ -114,10 +114,10 @@ class ReadController {
         readBlocks: Boolean = true
     ): ReadResult {
         val nfcF = NfcF.get(tag) ?: throw ReadException("Tag is not a FeliCa/NfcF tag")
+        val rawLog = mutableListOf<RawExchange>()
         try {
             nfcF.connect()
             nfcF.timeout = timeoutMillis
-            val rawLog = mutableListOf<RawExchange>()
             val (idm, pmm) = performPolling(nfcF, rawLog)
             val systemCodes = requestSystemCodes(nfcF, idm, rawLog)
             val serviceCodes = requestServiceCodes(nfcF, idm, rawLog)
