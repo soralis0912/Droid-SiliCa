@@ -23,7 +23,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
-                tools:text="Read" />
+                tools:text="読み取り" />
 
             <TextView
                 android:id="@+id/tabDescription"
@@ -31,7 +31,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-                tools:text="Details about how to read data" />
+                tools:text="カードをタップして読み取ります" />
 
             <LinearLayout
                 android:id="@+id/actionList"
@@ -39,15 +39,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:orientation="vertical"
-                tools:ignore="UseCompoundDrawables">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="• Placeholder action"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    tools:ignore="HardcodedText" />
-            </LinearLayout>
+                android:visibility="gone"
+                tools:ignore="UseCompoundDrawables" />
 
             <LinearLayout
                 android:id="@+id/readControls"
@@ -56,24 +49,12 @@
                 android:layout_marginTop="16dp"
                 android:orientation="vertical">
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/read_controls_title"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/read_controls_description"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
-
                 <CheckBox
                     android:id="@+id/readLastErrorCheckbox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:checked="true"
                     android:text="@string/read_option_last_error_command" />
 
                 <CheckBox
@@ -111,6 +92,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
+                    android:visibility="gone"
                     android:text="@string/read_action_full_dump" />
 
                 <com.google.android.material.button.MaterialButton
@@ -119,6 +101,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="end"
+                    android:visibility="gone"
                     android:text="@string/read_action_full_dump_reset" />
 
                 <LinearLayout
@@ -154,6 +137,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
                     android:enabled="false"
+                    android:visibility="gone"
                     android:text="@string/read_action_export_hex" />
 
                 <TextView
@@ -184,6 +168,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:visibility="gone"
                     android:text="@string/read_raw_log_label"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
 
@@ -191,6 +176,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
+                    android:visibility="gone"
                     app:cardUseCompatPadding="true">
 
                     <TextView
