@@ -113,9 +113,8 @@ class ReadController {
         try {
             nfcF.connect()
             nfcF.timeout = timeoutMillis
-            val idm = tag.id.copyOf()
-            val pmm = nfcF.manufacturer.copyOf()
             val rawLog = mutableListOf<RawExchange>()
+            val (idm, pmm) = performPolling(nfcF, rawLog)
             val systemCodes = requestSystemCodes(nfcF, idm, rawLog)
             val serviceCodes = requestServiceCodes(nfcF, idm, rawLog)
             if (!readBlocks) {
@@ -247,6 +246,46 @@ class ReadController {
         )
     }
 
+    private fun performPolling(
+        nfcF: NfcF,
+        rawLog: MutableList<RawExchange>
+    ): Pair<ByteArray, ByteArray> {
+        val commandSize = 1 + 1 + 2 + 1 + 1
+        val command = ByteArray(commandSize)
+        var offset = 0
+        command[offset++] = commandSize.toByte()
+        command[offset++] = COMMAND_POLLING
+        command[offset++] = (POLLING_SYSTEM_CODE and 0xFF).toByte()
+        command[offset++] = ((POLLING_SYSTEM_CODE shr 8) and 0xFF).toByte()
+        command[offset++] = POLLING_REQUEST_CODE
+        command[offset] = POLLING_TIME_SLOT
+        val requestSnapshot = command.copyOf()
+        val response = nfcF.transceive(command)
+        rawLog += RawExchange(
+            label = LABEL_POLLING,
+            request = requestSnapshot,
+            response = response.copyOf()
+        )
+        if (response.size < RESPONSE_POLLING_MIN_SIZE) {
+            throw ReadException("Polling response too short: ${response.size} bytes")
+        }
+        val responseCode = response[1]
+        if (responseCode != RESPONSE_POLLING) {
+            throw ReadException(
+                String.format(
+                    Locale.US,
+                    "Unexpected polling response code 0x%02X",
+                    responseCode.toPositiveInt()
+                )
+            )
+        }
+        val idmStart = 2
+        val idm = response.copyOfRange(idmStart, idmStart + IDM_LENGTH)
+        val pmmStart = idmStart + IDM_LENGTH
+        val pmm = response.copyOfRange(pmmStart, pmmStart + PMM_LENGTH)
+        return idm to pmm
+    }
+
     private val readerCallback = NfcAdapter.ReaderCallback { tag ->
         try {
             val result = readLastErrorCommand(tag, readBlocks = readBlocksRequested)
@@ -372,6 +411,7 @@ class ReadController {
         private const val KEY = "read"
         private const val DEFAULT_TIMEOUT_MS = 1000
         private const val IDM_LENGTH = 8
+        private const val PMM_LENGTH = 8
         private const val SERVICE_CODE_SIZE = 2
         private const val BLOCK_LIST_ELEMENT_SIZE = 2
         private const val BLOCK_SIZE = 16
@@ -385,11 +425,18 @@ class ReadController {
         private val RESPONSE_SYSTEM_CODE = 0x0D.toByte()
         private val COMMAND_SEARCH_SERVICE_CODE = 0x0A.toByte()
         private val RESPONSE_SERVICE_CODE = 0x0B.toByte()
+        private val COMMAND_POLLING = 0x00.toByte()
+        private val RESPONSE_POLLING = 0x01.toByte()
         private val SERVICE_CODE_LIST = intArrayOf(0xFFFF)
         private val DEFAULT_BLOCKS = listOf(0xE0, 0xE1)
         private val BLOCK_LIST_ACCESS_MODE = 0x80.toByte()
+        private const val POLLING_SYSTEM_CODE = 0xFFFF
+        private val POLLING_REQUEST_CODE = 0x00.toByte()
+        private val POLLING_TIME_SLOT = 0x00.toByte()
+        private const val RESPONSE_POLLING_MIN_SIZE = 18
         private const val LABEL_REQUEST_SYSTEM_CODES = "Request System Codes"
         private const val LABEL_SEARCH_SERVICE_TEMPLATE = "Search Service Codes #%d"
         private const val LABEL_READ_WITHOUT_ENCRYPTION = "Read Without Encryption"
+        private const val LABEL_POLLING = "Polling"
     }
 }
