@@ -70,6 +70,14 @@
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
 
                 <CheckBox
+                    android:id="@+id/readLastErrorCheckbox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:checked="true"
+                    android:text="@string/read_option_last_error_command" />
+
+                <CheckBox
                     android:id="@+id/readIncludeBlocksCheckbox"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

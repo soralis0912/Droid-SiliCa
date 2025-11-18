@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import java.util.Locale
 import org.soralis.droidsillica.R
 import org.soralis.droidsillica.controller.tab.ReadController
+import org.soralis.droidsillica.controller.tab.WriteController
 import org.soralis.droidsillica.databinding.FragmentTabHistoryBinding
 import org.soralis.droidsillica.databinding.FragmentTabManualBinding
 import org.soralis.droidsillica.databinding.FragmentTabReadBinding
@@ -30,7 +31,9 @@ class TabFragment : Fragment() {
     private var _historyBinding: FragmentTabHistoryBinding? = null
     private var tabView: TabView? = null
     private var readView: ReadView? = null
+    private var writeView: WriteView? = null
     private val readController = ReadController()
+    private val writeController = WriteController()
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -85,18 +88,26 @@ class TabFragment : Fragment() {
         _historyBinding = null
         readController.stopReading()
         readView = null
+        writeController.stopWriting()
+        writeView = null
     }
 
     private fun createTabView(key: String): TabView {
         if (key != KEY_READ) {
             readView = null
         }
+        if (key != KEY_WRITE) {
+            writeView = null
+        }
         return when (key) {
             KEY_READ -> ReadView(
                 _readBinding ?: error("Missing read binding"),
                 readCallbacks
             ).also { readView = it }
-            KEY_WRITE -> WriteView(_writeBinding ?: error("Missing write binding"))
+            KEY_WRITE -> WriteView(
+                _writeBinding ?: error("Missing write binding"),
+                writeCallbacks
+            ).also { writeView = it }
             KEY_MANUAL -> ManualView(_manualBinding ?: error("Missing manual binding"))
             KEY_HISTORY -> HistoryView(_historyBinding ?: error("Missing history binding"))
             else -> BaseTabView(
@@ -110,9 +121,9 @@ class TabFragment : Fragment() {
     }
 
     private val readCallbacks = object : ReadView.Callbacks {
-        override fun onStartReading(blockNumbers: List<Int>) {
+        override fun onStartReading(blockNumbers: List<Int>, readLastErrorCommand: Boolean) {
             val activity = activity ?: return
-            readController.startReading(activity, blockNumbers, readListener)
+            readController.startReading(activity, blockNumbers, readLastErrorCommand, readListener)
         }
 
         override fun onStopReading() {
@@ -164,6 +175,43 @@ class TabFragment : Fragment() {
         override fun onNfcUnavailable() {
             readView?.showResultMessage(getString(R.string.read_result_no_nfc))
             readView?.setReadingInProgress(false)
+        }
+    }
+
+    private val writeCallbacks = object : WriteView.Callbacks {
+        override fun onStartWriting(request: WriteController.WriteRequest) {
+            val activity = activity ?: return
+            writeController.startWriting(activity, request, writeListener)
+        }
+
+        override fun onCancelWriting() {
+            writeController.stopWriting()
+        }
+    }
+
+    private val writeListener = object : WriteController.Listener {
+        override fun onWaitingForTag() {
+            writeView?.showResultMessage(getString(R.string.write_result_waiting))
+        }
+
+        override fun onWriteSuccess() {
+            writeView?.showResultMessage(getString(R.string.write_result_success))
+            writeView?.setWritingInProgress(false)
+        }
+
+        override fun onWriteError(message: String) {
+            writeView?.showResultMessage(getString(R.string.write_result_error, message))
+            writeView?.setWritingInProgress(false)
+        }
+
+        override fun onWriteStopped() {
+            writeView?.showResultMessage(getString(R.string.write_result_cancelled))
+            writeView?.setWritingInProgress(false)
+        }
+
+        override fun onNfcUnavailable() {
+            writeView?.showResultMessage(getString(R.string.write_result_no_nfc))
+            writeView?.setWritingInProgress(false)
         }
     }
 

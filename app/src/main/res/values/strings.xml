@@ -3,12 +3,14 @@
     <string name="app_name">Droid SilliCa</string>
     <string name="read_controls_title">Read Options</string>
     <string name="read_controls_description">Select which SiliCa data blocks to capture.</string>
+    <string name="read_option_last_error_command">Retrieve last error command</string>
     <string name="read_option_include_blocks">Read specified system blocks</string>
     <string name="read_action_start">Start Reading</string>
     <string name="read_action_stop">Stop</string>
     <string name="read_result_label">Result</string>
     <string name="read_result_placeholder">Awaiting NFC tag...</string>
     <string name="read_result_starting">Reading blocks: %1$s\nPlease tap a SiliCa card.</string>
+    <string name="read_result_starting_default">Reading default blocks.\nPlease tap a SiliCa card.</string>
     <string name="read_result_starting_basic">Reading IDm/PMm only.\nPlease tap a SiliCa card.</string>
     <string name="read_result_stopped">Reading stopped.</string>
     <string name="read_result_waiting_for_tag">Ready. Hold the card near the device.</string>
@@ -21,4 +23,43 @@
     <string name="read_block_input_invalid">Invalid block \"%1$s\". Use decimal values between 0 and 255.</string>
     <string name="read_result_no_system_codes">None</string>
     <string name="read_result_no_service_codes">None</string>
+    <string name="write_controls_title">Write Options</string>
+    <string name="write_controls_description">Send SiliCa metadata updates or raw blocks using the same commands as the CLI tool.</string>
+    <string name="write_command_hint">Command</string>
+    <string name="write_command_idm">IDm / PMm</string>
+    <string name="write_command_system">System codes</string>
+    <string name="write_command_service">Service codes</string>
+    <string name="write_command_raw">Raw block</string>
+    <string-array name="write_command_options">
+        <item>@string/write_command_idm</item>
+        <item>@string/write_command_system</item>
+        <item>@string/write_command_service</item>
+        <item>@string/write_command_raw</item>
+    </string-array>
+    <string name="write_idm_hint">IDm (16 hex chars)</string>
+    <string name="write_pmm_hint">PMm override (optional)</string>
+    <string name="write_system_hint">System codes (hex pairs)</string>
+    <string name="write_system_helper">Enter up to 4 system codes (e.g. &quot;12FC C000&quot;).</string>
+    <string name="write_service_hint">Service codes (hex pairs)</string>
+    <string name="write_service_helper">Enter up to 4 service codes (e.g. &quot;100B 200B&quot;).</string>
+    <string name="write_block_hint">Block number (decimal 0-11)</string>
+    <string name="write_raw_data_hint">Block data (32 hex chars)</string>
+    <string name="write_action_start">Start Writing</string>
+    <string name="write_action_stop">Cancel</string>
+    <string name="write_result_label">Status</string>
+    <string name="write_result_placeholder">Select a command and press Start to write.</string>
+    <string name="write_result_waiting">Ready. Hold the tag to the device to write.</string>
+    <string name="write_result_success">Write completed.</string>
+    <string name="write_result_error">Write failed: %1$s</string>
+    <string name="write_result_cancelled">Write cancelled.</string>
+    <string name="write_result_no_nfc">NFC is unavailable on this device.</string>
+    <string name="write_error_invalid_hex">Invalid hex data.</string>
+    <string name="write_error_idm_length">IDm must be 8 bytes (16 hex characters).</string>
+    <string name="write_error_pmm_length">PMm must be 8 bytes (16 hex characters).</string>
+    <string name="write_error_block_range">Block number must be between 0 and 11.</string>
+    <string name="write_error_raw_length">Block data must be 16 bytes (32 hex characters).</string>
+    <string name="write_error_code_required">Enter at least one code.</string>
+    <string name="write_error_code_limit">A maximum of %1$d codes is allowed.</string>
+    <string name="write_error_code_invalid">Invalid code &quot;%1$s&quot;. Use 4 hex characters.</string>
+    <string name="write_error_invalid_state">Nothing to write.</string>
 </resources>

@@ -64,10 +64,15 @@ class ReadController {
     /**
      * Starts NFC reader mode and waits for a FeliCa tag. Results are delivered to [Listener].
      */
-    fun startReading(activity: Activity, blockNumbers: List<Int>, listener: Listener) {
+    fun startReading(
+        activity: Activity,
+        blockNumbers: List<Int>,
+        readLastErrorCommand: Boolean,
+        listener: Listener
+    ) {
         sessionListener = listener
         activityRef = WeakReference(activity)
-        readBlocksRequested = blockNumbers.isNotEmpty()
+        readBlocksRequested = readLastErrorCommand
         pendingBlockNumbers = blockNumbers
         val adapter = nfcAdapter ?: NfcAdapter.getDefaultAdapter(activity).also { nfcAdapter = it }
         if (adapter == null) {

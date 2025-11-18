@@ -10,7 +10,7 @@ class ReadView(
 ) : BaseTabView(readBinding.toTabUiComponents()) {
 
     interface Callbacks {
-        fun onStartReading(blockNumbers: List<Int>)
+        fun onStartReading(blockNumbers: List<Int>, readLastErrorCommand: Boolean)
         fun onStopReading()
     }
 
@@ -27,18 +27,23 @@ class ReadView(
     }
 
     private fun handleStart() {
-        val blockNumbers = selectedBlockNumbers() ?: return
-        val context = readBinding.root.context
-        readBinding.readResultText.text = if (blockNumbers.isEmpty()) {
-            context.getString(R.string.read_result_starting_basic)
+        val shouldReadLastError = readBinding.readLastErrorCheckbox.isChecked
+        val blockNumbers = if (shouldReadLastError) {
+            selectedBlockNumbers() ?: return
         } else {
-            context.getString(
+            emptyList()
+        }
+        val context = readBinding.root.context
+        readBinding.readResultText.text = when {
+            !shouldReadLastError -> context.getString(R.string.read_result_starting_basic)
+            blockNumbers.isEmpty() -> context.getString(R.string.read_result_starting_default)
+            else -> context.getString(
                 R.string.read_result_starting,
                 blockNumbers.joinToString(", ")
             )
         }
         setReadingInProgress(true)
-        callbacks?.onStartReading(blockNumbers)
+        callbacks?.onStartReading(blockNumbers, shouldReadLastError)
     }
 
     private fun handleStop() {

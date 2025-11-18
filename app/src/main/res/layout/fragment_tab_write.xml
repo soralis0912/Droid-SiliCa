@@ -49,6 +49,249 @@
                     tools:ignore="HardcodedText" />
             </LinearLayout>
 
+            <LinearLayout
+                android:id="@+id/writeControls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/write_controls_title"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="@string/write_controls_description"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/writeCommandLayout"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:hint="@string/write_command_hint">
+
+                    <AutoCompleteTextView
+                        android:id="@+id/writeCommandDropdown"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:inputType="none"
+                        android:importantForAutofill="no"
+                        tools:text="@string/write_command_idm" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <LinearLayout
+                    android:id="@+id/writeIdmGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical"
+                    tools:visibility="visible">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/writeIdmInputLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/write_idm_hint">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/writeIdmInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textVisiblePassword"
+                            android:maxLines="1"
+                            android:textAllCaps="true"
+                            tools:text="0123456789ABCDEF" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/writePmmInputLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="@string/write_pmm_hint">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/writePmmInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textVisiblePassword"
+                            android:maxLines="1"
+                            android:textAllCaps="true"
+                            tools:text="0001FFFFFFFFFFFF" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/writeSystemGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/writeSystemCodesLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/write_system_hint">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/writeSystemCodesInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textVisiblePassword"
+                            android:maxLines="1"
+                            android:textAllCaps="true"
+                            tools:text="12FC 8000" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/write_system_helper"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/writeServiceGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/writeServiceCodesLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/write_service_hint">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/writeServiceCodesInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textVisiblePassword"
+                            android:maxLines="1"
+                            android:textAllCaps="true"
+                            tools:text="100B 200B" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:text="@string/write_service_helper"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:id="@+id/writeRawGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/writeBlockNumberLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:hint="@string/write_block_hint">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/writeBlockNumberInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="number"
+                            android:maxLines="1"
+                            tools:text="3" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/writeRawDataLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:hint="@string/write_raw_data_hint">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/writeRawDataInput"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:inputType="textVisiblePassword"
+                            android:maxLines="1"
+                            android:textAllCaps="true"
+                            tools:text="00112233445566778899AABBCCDDEEFF" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/writeStartButton"
+                        style="@style/Widget.MaterialComponents.Button"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
+                        android:text="@string/write_action_start" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/writeCancelButton"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:enabled="false"
+                        android:text="@string/write_action_stop" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:text="@string/write_result_label"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    app:cardUseCompatPadding="true">
+
+                    <TextView
+                        android:id="@+id/writeResultText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:padding="16dp"
+                        android:text="@string/write_result_placeholder"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                        android:textIsSelectable="true"
+                        android:typeface="monospace"
+                        tools:text="@string/write_result_placeholder" />
+                </com.google.android.material.card.MaterialCardView>
+
+            </LinearLayout>
+
         </LinearLayout>
 
     </com.google.android.material.card.MaterialCardView>
