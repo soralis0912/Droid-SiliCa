@@ -21,7 +21,7 @@ class WriteController {
     interface Listener {
         fun onWaitingForTag()
         fun onWriteSuccess(result: WriteResult)
-        fun onWriteError(message: String, rawLog: List<RawExchange>)
+        fun onWriteError(message: String, rawLog: List<RawExchange>, completedPayloads: Int)
         fun onWriteStopped()
         fun onNfcUnavailable()
     }
@@ -38,7 +38,8 @@ class WriteController {
     class WriteException(
         message: String,
         cause: Throwable? = null,
-        val rawLog: List<RawExchange> = emptyList()
+        val rawLog: List<RawExchange> = emptyList(),
+        val completedPayloads: Int = 0
     ) : Exception(message, cause)
 
     data class WriteResult(
@@ -97,6 +98,7 @@ class WriteController {
         val nfcF = NfcF.get(tag) ?: throw WriteException("Tag is not a FeliCa/NfcF tag")
         val rawLog = mutableListOf<RawExchange>()
         var requestSnapshot: ByteArray? = null
+        var completedPayloads = 0
         try {
             nfcF.connect()
             nfcF.timeout = timeoutMillis
@@ -112,7 +114,8 @@ class WriteController {
                     request = currentRequest.copyOf(),
                     response = response.copyOf()
                 )
-                parseWriteResponse(response, rawLog.toList())
+                parseWriteResponse(response, rawLog.toList(), completedPayloads)
+                completedPayloads += 1
             }
             return WriteResult(rawExchanges = rawLog.toList())
         } catch (io: IOException) {
@@ -126,7 +129,8 @@ class WriteController {
             throw WriteException(
                 "Unable to write the SiliCa system block",
                 io,
-                rawLog.toList()
+                rawLog.toList(),
+                completedPayloads = completedPayloads
             )
         } finally {
             try {
@@ -149,7 +153,8 @@ class WriteController {
             mainHandler.post {
                 sessionListener?.onWriteError(
                     exception.message ?: DEFAULT_ERROR,
-                    exception.rawLog
+                    exception.rawLog,
+                    exception.completedPayloads
                 )
                 stopReaderModeInternal(notifyStopped = false)
             }
@@ -246,12 +251,14 @@ class WriteController {
     @Throws(WriteException::class)
     private fun parseWriteResponse(
         response: ByteArray,
-        rawLog: List<RawExchange>
+        rawLog: List<RawExchange>,
+        completedPayloads: Int
     ) {
         if (response.size < RESPONSE_HEADER_SIZE) {
             throw WriteException(
                 "Response too short: ${response.size} bytes",
-                rawLog = rawLog
+                rawLog = rawLog,
+                completedPayloads = completedPayloads
             )
         }
         val responseCode = response[1]
@@ -262,7 +269,8 @@ class WriteController {
                     "Unexpected response code 0x%02X",
                     responseCode.toPositiveInt()
                 ),
-                rawLog = rawLog
+                rawLog = rawLog,
+                completedPayloads = completedPayloads
             )
         }
         val statusFlag1 = response[10].toPositiveInt()
@@ -270,7 +278,8 @@ class WriteController {
         if (statusFlag1 != 0 || statusFlag2 != 0) {
             throw WriteException(
                 "FeliCa error status: $statusFlag1, $statusFlag2",
-                rawLog = rawLog
+                rawLog = rawLog,
+                completedPayloads = completedPayloads
             )
         }
     }

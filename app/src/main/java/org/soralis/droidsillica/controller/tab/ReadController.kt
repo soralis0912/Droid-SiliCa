@@ -6,6 +6,7 @@ import android.nfc.Tag
 import android.nfc.tech.NfcF
 import android.os.Handler
 import android.os.Looper
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.lang.ref.WeakReference
 import java.util.Locale
@@ -36,7 +37,8 @@ class ReadController {
         val pmm: ByteArray,
         val systemCodes: List<Int>,
         val serviceCodes: List<Int>,
-        val blockNumbers: List<Int>
+        val blockNumbers: List<Int>,
+        val blockData: ByteArray
     ) {
         val formattedIdm: String = idm.toLegacyHexString()
         val formattedPmm: String = pmm.toLegacyHexString()
@@ -145,7 +147,8 @@ class ReadController {
                 pmm = pmm,
                 systemCodes = systemCodes,
                 serviceCodes = serviceCodes,
-                blockNumbers = blocksToRead.toList()
+                blockNumbers = blocksToRead.toList(),
+                blockData = ByteArray(0)
             )
             if (!readBlocks) {
                 return ReadResult(
@@ -161,23 +164,48 @@ class ReadController {
                     blockNumbers = emptyList()
                 )
             }
-            val request = buildReadCommand(idm, blocksToRead)
-            val requestSnapshot = request.copyOf()
-            val response = try {
-                nfcF.transceive(request)
-            } catch (io: IOException) {
-                rawLog += RawExchange(
-                    label = LABEL_READ_WITHOUT_ENCRYPTION,
-                    request = requestSnapshot,
-                    response = ByteArray(0)
+            val combinedData = ByteArrayOutputStream()
+            var lastChunkResult: ReadResult? = null
+            var currentIndex = 0
+            var aggregatedPartial = requireNotNull(partialResult)
+            while (currentIndex < blocksToRead.size) {
+                val chunkNumbers = blocksToRead.subList(
+                    currentIndex,
+                    minOf(currentIndex + MAX_BLOCKS_PER_COMMAND, blocksToRead.size)
                 )
-                throw io
+                val chunkPartial = aggregatedPartial.copy(
+                    blockNumbers = chunkNumbers,
+                    blockData = ByteArray(0)
+                )
+                val chunkResult = readChunk(
+                    nfcF,
+                    idm,
+                    chunkNumbers,
+                    chunkPartial,
+                    aggregatedPartial,
+                    rawLog
+                )
+                combinedData.write(chunkResult.blockData)
+                currentIndex += chunkNumbers.size
+                aggregatedPartial = aggregatedPartial.copy(blockData = combinedData.toByteArray())
+                lastChunkResult = chunkResult
             }
-            return parseReadResponse(
-                requestSnapshot,
-                response,
-                partialResult!!,
-                rawLog
+            val payload = combinedData.toByteArray()
+            partialResult = aggregatedPartial
+            return lastChunkResult?.copy(
+                blockData = payload,
+                blockNumbers = blocksToRead.toList()
+            ) ?: ReadResult(
+                idm = idm,
+                pmm = pmm,
+                systemCodes = systemCodes,
+                serviceCodes = serviceCodes,
+                statusFlag1 = 0,
+                statusFlag2 = 0,
+                blockData = ByteArray(0),
+                lastErrorCommand = ByteArray(0),
+                rawExchanges = rawLog.toList(),
+                blockNumbers = emptyList()
             )
         } catch (e: IOException) {
             throw ReadException(
@@ -232,7 +260,8 @@ class ReadController {
     private fun parseReadResponse(
         rawRequest: ByteArray,
         response: ByteArray,
-        partialResult: PartialReadResult,
+        chunkPartial: PartialReadResult,
+        errorSnapshot: PartialReadResult,
         rawLog: MutableList<RawExchange>
     ): ReadResult {
         rawLog += RawExchange(
@@ -244,7 +273,7 @@ class ReadController {
             throw ReadException(
                 "Response too short: ${response.size} bytes",
                 rawLog = rawLog.toList(),
-                partialResult = partialResult
+                partialResult = errorSnapshot
             )
         }
         val responseCode = response[1]
@@ -256,7 +285,7 @@ class ReadController {
                     responseCode.toPositiveInt()
                 ),
                 rawLog = rawLog.toList(),
-                partialResult = partialResult
+                partialResult = errorSnapshot
             )
         }
         val idm = response.copyOfRange(2, 2 + IDM_LENGTH)
@@ -266,7 +295,7 @@ class ReadController {
             throw ReadException(
                 "FeliCa error status: $statusFlag1, $statusFlag2",
                 rawLog = rawLog.toList(),
-                partialResult = partialResult
+                partialResult = errorSnapshot
             )
         }
         val blockCount = response[12].toPositiveInt()
@@ -276,22 +305,56 @@ class ReadController {
             throw ReadException(
                 "Incomplete block payload (expected $payloadLength bytes)",
                 rawLog = rawLog.toList(),
-                partialResult = partialResult
+                partialResult = errorSnapshot
             )
         }
         val blockData = response.copyOfRange(payloadOffset, payloadOffset + payloadLength)
-        val lastCommand = extractLastErrorCommand(partialResult.blockNumbers, blockData)
+        val lastCommand = extractLastErrorCommand(chunkPartial.blockNumbers, blockData)
         return ReadResult(
             idm = idm,
-            pmm = partialResult.pmm,
-            systemCodes = partialResult.systemCodes,
-            serviceCodes = partialResult.serviceCodes,
+            pmm = chunkPartial.pmm,
+            systemCodes = chunkPartial.systemCodes,
+            serviceCodes = chunkPartial.serviceCodes,
             statusFlag1 = statusFlag1,
             statusFlag2 = statusFlag2,
             blockData = blockData,
             lastErrorCommand = lastCommand,
             rawExchanges = rawLog.toList(),
-            blockNumbers = partialResult.blockNumbers.toList()
+            blockNumbers = chunkPartial.blockNumbers.toList()
+        )
+    }
+
+    private fun readChunk(
+        nfcF: NfcF,
+        idm: ByteArray,
+        blockNumbers: List<Int>,
+        chunkPartial: PartialReadResult,
+        errorSnapshot: PartialReadResult,
+        rawLog: MutableList<RawExchange>
+    ): ReadResult {
+        val request = buildReadCommand(idm, blockNumbers)
+        val requestSnapshot = request.copyOf()
+        val response = try {
+            nfcF.transceive(request)
+        } catch (io: IOException) {
+            rawLog += RawExchange(
+                label = LABEL_READ_WITHOUT_ENCRYPTION,
+                request = requestSnapshot,
+                response = ByteArray(0)
+            )
+            throw ReadException(
+                "Unable to read the SiliCa system block",
+                io,
+                rawLog.toList(),
+                partialResult = errorSnapshot
+            )
+        }
+        return parseReadResponse(
+            requestSnapshot,
+            response,
+            chunkPartial,
+            errorSnapshot,
+            rawLog
         )
     }
 
@@ -507,6 +570,7 @@ class ReadController {
         private const val RESPONSE_HEADER_SIZE = 13
         private const val RESPONSE_HEADER_BASE = 2 + IDM_LENGTH
         private const val MAX_SERVICE_SEARCH = 32
+        private const val MAX_BLOCKS_PER_COMMAND = 12
         private val COMMAND_READ = 0x06.toByte()
         private val RESPONSE_READ = 0x07.toByte()
         private val COMMAND_REQUEST_SYSTEM_CODE = 0x0C.toByte()

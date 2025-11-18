@@ -1,5 +1,6 @@
 package org.soralis.droidsillica.ui.tab.view
 
+import androidx.annotation.StringRes
 import org.soralis.droidsillica.R
 import org.soralis.droidsillica.databinding.FragmentTabReadBinding
 import org.soralis.droidsillica.model.TabContent
@@ -11,17 +12,23 @@ class ReadView(
 
     private var exportEnabled = false
     private var readingInProgress = false
+    private var fullDumpButtonEnabled = true
+    private var fullDumpResetEnabled = false
 
     interface Callbacks {
         fun onStartReading(blockNumbers: List<Int>, readLastErrorCommand: Boolean)
         fun onStopReading()
         fun onExportSystemBlocks()
+        fun onFullDumpRequested()
+        fun onFullDumpReset()
     }
 
     init {
         readBinding.readStartButton.setOnClickListener { handleStart() }
         readBinding.readStopButton.setOnClickListener { handleStop() }
         readBinding.readExportHexButton.setOnClickListener { callbacks?.onExportSystemBlocks() }
+        readBinding.readFullDumpButton.setOnClickListener { handleFullDump() }
+        readBinding.readFullDumpResetButton.setOnClickListener { callbacks?.onFullDumpReset() }
     }
 
     override fun render(content: TabContent) {
@@ -32,6 +39,9 @@ class ReadView(
         readBinding.readRawLogText.text =
             readBinding.root.context.getString(R.string.read_raw_log_placeholder)
         setExportEnabled(false)
+        setFullDumpButtonText(R.string.read_action_full_dump)
+        setFullDumpButtonEnabled(true)
+        setFullDumpResetEnabled(false)
     }
 
     private fun handleStart() {
@@ -90,6 +100,7 @@ class ReadView(
         readingInProgress = inProgress
         readBinding.readStartButton.isEnabled = !inProgress
         readBinding.readStopButton.isEnabled = inProgress
+        updateFullDumpControls()
         updateExportButtonState()
     }
 
@@ -100,6 +111,34 @@ class ReadView(
 
     private fun updateExportButtonState() {
         readBinding.readExportHexButton.isEnabled = exportEnabled && !readingInProgress
+    }
+
+    private fun updateFullDumpControls() {
+        readBinding.readFullDumpButton.isEnabled = fullDumpButtonEnabled && !readingInProgress
+        readBinding.readFullDumpResetButton.isEnabled = fullDumpResetEnabled && !readingInProgress
+    }
+
+    private fun handleFullDump() {
+        callbacks?.onFullDumpRequested()
+    }
+
+    fun setFullDumpButtonText(@StringRes textRes: Int, vararg args: Any) {
+        readBinding.readFullDumpButton.text =
+            readBinding.root.context.getString(textRes, *args)
+    }
+
+    fun setFullDumpButtonText(text: CharSequence) {
+        readBinding.readFullDumpButton.text = text
+    }
+
+    fun setFullDumpButtonEnabled(enabled: Boolean) {
+        fullDumpButtonEnabled = enabled
+        updateFullDumpControls()
+    }
+
+    fun setFullDumpResetEnabled(enabled: Boolean) {
+        fullDumpResetEnabled = enabled
+        updateFullDumpControls()
     }
 
     fun showResultMessage(message: CharSequence) {

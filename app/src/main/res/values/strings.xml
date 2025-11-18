@@ -8,6 +8,9 @@
     <string name="read_action_start">Start Reading</string>
     <string name="read_action_stop">Stop</string>
     <string name="read_action_export_hex">Export last read (.hex)</string>
+    <string name="read_action_full_dump">Read all 255 blocks</string>
+    <string name="read_action_full_dump_resume">Continue full read (%1$d/%2$d)</string>
+    <string name="read_action_full_dump_reset">Reset full read progress</string>
     <string name="read_result_label">Result</string>
     <string name="read_result_placeholder">Awaiting NFC tag...</string>
     <string name="read_result_starting">Reading blocks: %1$s\nPlease tap a SiliCa card.</string>
@@ -23,6 +26,8 @@
     <string name="read_result_blocks">Blocks:\n%1$s</string>
     <string name="read_result_block_entry">Block %1$d: %2$s</string>
     <string name="read_result_no_block_payload">No block data was returned.</string>
+    <string name="read_result_full_dump_progress">Full block read progress: %1$d / %2$d</string>
+    <string name="read_result_full_dump_complete">Full block read complete.</string>
     <string name="raw_data_unavailable">Unavailable</string>
     <string name="raw_log_entry">%1$s\nREQ: %2$s\nRES: %3$s</string>
     <string name="read_raw_log_label">Raw Log</string>
@@ -65,6 +70,7 @@
     <string name="write_result_placeholder">Select a command and press Start to write.</string>
     <string name="write_result_waiting">Ready. Hold the tag to the device to write.</string>
     <string name="write_result_success">Write completed.</string>
+    <string name="write_result_batch_progress">Blocks written: %1$d / %2$d. Hold the card again to continue.</string>
     <string name="write_raw_log_label">Raw Log</string>
     <string name="write_raw_log_placeholder">Raw log will appear here after a write.</string>
     <string name="write_result_error">Write failed: %1$s</string>

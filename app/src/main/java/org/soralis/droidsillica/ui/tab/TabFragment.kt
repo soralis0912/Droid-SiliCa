@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
+import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.util.Locale
 import org.soralis.droidsillica.R
@@ -48,6 +49,8 @@ class TabFragment : Fragment() {
     private val historyController = HistoryController()
     private var pendingReadRequest: ReadRequestMetadata? = null
     private var pendingWriteRequest: WriteController.WriteRequest? = null
+    private var fullDumpState: FullDumpState? = null
+    private var batchWriteState: BatchWriteState? = null
     private var lastSystemBlockTimestamp: Long? = null
     private var hasSystemBlockSnapshot: Boolean = false
     private var pendingExportTimestamp: Long? = null
@@ -107,7 +110,10 @@ class TabFragment : Fragment() {
         tabView?.render(content)
         when (content.key) {
             KEY_HISTORY -> refreshHistory()
-            KEY_READ -> refreshSystemBlockExportAvailability()
+            KEY_READ -> {
+                refreshSystemBlockExportAvailability()
+                updateFullDumpControls()
+            }
         }
     }
 
@@ -172,7 +178,11 @@ class TabFragment : Fragment() {
     private val readCallbacks = object : ReadView.Callbacks {
         override fun onStartReading(blockNumbers: List<Int>, readLastErrorCommand: Boolean) {
             val activity = activity ?: return
-            pendingReadRequest = ReadRequestMetadata(blockNumbers.toList(), readLastErrorCommand)
+            pendingReadRequest = ReadRequestMetadata(
+                blockNumbers.toList(),
+                readLastErrorCommand,
+                ReadRequestType.STANDARD
+            )
             readController.startReading(activity, blockNumbers, readLastErrorCommand, readListener)
         }
 
@@ -190,6 +200,14 @@ class TabFragment : Fragment() {
             val defaultName = "silica_$timestamp.hex"
             exportHexLauncher.launch(defaultName)
         }
+
+        override fun onFullDumpRequested() {
+            startFullDumpRead()
+        }
+
+        override fun onFullDumpReset() {
+            resetFullDumpState()
+        }
     }
 
     private val readListener = object : ReadController.Listener {
@@ -199,20 +217,29 @@ class TabFragment : Fragment() {
         }
 
         override fun onReadSuccess(result: ReadController.ReadResult) {
-            val blockSummary = formatBlockSummary(result)
-            val rawLogText = formatRawLog(result.rawExchanges)
+            val request = pendingReadRequest
+            val displayResult = if (request?.type == ReadRequestType.FULL_DUMP) {
+                handleFullDumpSuccess(result) ?: run {
+                    pendingReadRequest = null
+                    return
+                }
+            } else {
+                result
+            }
+            val blockSummary = formatBlockSummary(displayResult)
+            val rawLogText = formatRawLog(displayResult.rawExchanges)
             val systemCodesText = formatCodeList(
-                result.systemCodes,
+                displayResult.systemCodes,
                 getString(R.string.read_result_no_system_codes)
             )
             val serviceCodesText = formatCodeList(
-                result.serviceCodes,
+                displayResult.serviceCodes,
                 getString(R.string.read_result_no_service_codes)
             )
             val resultMessage = getString(
                 R.string.read_result_success,
-                result.formattedIdm,
-                result.formattedPmm,
+                displayResult.formattedIdm,
+                displayResult.formattedPmm,
                 systemCodesText,
                 serviceCodesText,
                 blockSummary
@@ -220,13 +247,12 @@ class TabFragment : Fragment() {
             readView?.showResultMessage(resultMessage)
             readView?.showRawLog(rawLogText)
             readView?.setReadingInProgress(false)
-            val request = pendingReadRequest
             val appContext = context?.applicationContext
             var historyTimestamp: Long? = null
             if (appContext != null) {
                 historyTimestamp = HistoryLogger.logReadSuccess(
                     appContext,
-                    result,
+                    displayResult,
                     request?.blockNumbers,
                     request?.readBlocks ?: true,
                     resultMessage,
@@ -234,7 +260,7 @@ class TabFragment : Fragment() {
                 )
             }
             refreshHistory()
-            if (result.blockData.isNotEmpty() && result.blockNumbers.isNotEmpty()) {
+            if (displayResult.blockData.isNotEmpty() && displayResult.blockNumbers.isNotEmpty()) {
                 if (historyTimestamp != null) {
                     lastSystemBlockTimestamp = historyTimestamp
                     hasSystemBlockSnapshot = true
@@ -253,11 +279,17 @@ class TabFragment : Fragment() {
             rawLog: List<RawExchange>,
             partialResult: ReadController.PartialReadResult?
         ) {
+            val request = pendingReadRequest
             val baseMessage = getString(R.string.read_result_error, message)
-            val resultMessage = partialResult?.let { partial ->
-                val partialDetails = formatPartialReadResult(partial)
-                "$baseMessage\n\n$partialDetails"
-            } ?: baseMessage
+            val detailMessage = when (request?.type) {
+                ReadRequestType.FULL_DUMP -> handleFullDumpError(partialResult)
+                else -> partialResult?.let { formatPartialReadResult(it) }
+            }
+            val resultMessage = if (detailMessage.isNullOrBlank()) {
+                baseMessage
+            } else {
+                "$baseMessage\n\n$detailMessage"
+            }
             readView?.showResultMessage(resultMessage)
             val rawLogText = if (rawLog.isNotEmpty()) {
                 formatRawLog(rawLog)
@@ -267,18 +299,19 @@ class TabFragment : Fragment() {
             readView?.showRawLog(rawLogText)
             readView?.setReadingInProgress(false)
             readView?.setExportEnabled(hasSystemBlockSnapshot)
-            val request = pendingReadRequest
-            val appContext = context?.applicationContext
-            if (appContext != null) {
-                HistoryLogger.logReadError(
-                    appContext,
-                    message,
-                    rawLog,
-                    request?.blockNumbers,
-                    request?.readBlocks ?: true,
-                    resultMessage,
-                    rawLogText
-                )
+            if (request?.type != ReadRequestType.FULL_DUMP) {
+                val appContext = context?.applicationContext
+                if (appContext != null) {
+                    HistoryLogger.logReadError(
+                        appContext,
+                        message,
+                        rawLog,
+                        request?.blockNumbers,
+                        request?.readBlocks ?: true,
+                        resultMessage,
+                        rawLogText
+                    )
+                }
             }
             refreshHistory()
             pendingReadRequest = null
@@ -292,7 +325,7 @@ class TabFragment : Fragment() {
             readView?.setReadingInProgress(false)
             readView?.setExportEnabled(hasSystemBlockSnapshot)
             val request = pendingReadRequest
-            if (request != null) {
+            if (request != null && request.type != ReadRequestType.FULL_DUMP) {
                 val appContext = context?.applicationContext
                 if (appContext != null) {
                     HistoryLogger.logReadCancelled(
@@ -316,17 +349,19 @@ class TabFragment : Fragment() {
             readView?.setReadingInProgress(false)
             readView?.setExportEnabled(hasSystemBlockSnapshot)
             val request = pendingReadRequest
-            val appContext = context?.applicationContext
-            if (appContext != null) {
-                HistoryLogger.logReadError(
-                    appContext,
-                    getString(R.string.read_result_no_nfc),
-                    emptyList(),
-                    request?.blockNumbers,
-                    request?.readBlocks ?: true,
-                    resultMessage,
-                    rawLogPlaceholder
-                )
+            if (request?.type != ReadRequestType.FULL_DUMP) {
+                val appContext = context?.applicationContext
+                if (appContext != null) {
+                    HistoryLogger.logReadError(
+                        appContext,
+                        getString(R.string.read_result_no_nfc),
+                        emptyList(),
+                        request?.blockNumbers,
+                        request?.readBlocks ?: true,
+                        resultMessage,
+                        rawLogPlaceholder
+                    )
+                }
             }
             refreshHistory()
             pendingReadRequest = null
@@ -337,6 +372,11 @@ class TabFragment : Fragment() {
         override fun onStartWriting(request: WriteController.WriteRequest) {
             val activity = activity ?: return
             pendingWriteRequest = request
+            batchWriteState = if (request is WriteController.WriteRequest.RawBlockBatch) {
+                BatchWriteState(request.blocks.size)
+            } else {
+                null
+            }
             writeController.startWriting(activity, request, writeListener)
         }
 
@@ -372,11 +412,24 @@ class TabFragment : Fragment() {
                 )
             }
             refreshHistory()
+            batchWriteState = null
             pendingWriteRequest = null
         }
 
-        override fun onWriteError(message: String, rawLog: List<RawExchange>) {
-            val resultMessage = getString(R.string.write_result_error, message)
+        override fun onWriteError(
+            message: String,
+            rawLog: List<RawExchange>,
+            completedPayloads: Int
+        ) {
+            val currentRequest = pendingWriteRequest
+            val batchResult = handleBatchWriteError(currentRequest, completedPayloads)
+            val progressMessage = batchResult?.progressMessage
+            val baseMessage = getString(R.string.write_result_error, message)
+            val resultMessage = if (progressMessage.isNullOrBlank()) {
+                baseMessage
+            } else {
+                "$progressMessage\n$baseMessage"
+            }
             writeView?.showResultMessage(resultMessage)
             val rawLogText = if (rawLog.isNotEmpty()) {
                 formatRawLog(rawLog)
@@ -384,20 +437,28 @@ class TabFragment : Fragment() {
                 getString(R.string.write_raw_log_placeholder)
             }
             writeView?.showRawLog(rawLogText)
-            writeView?.setWritingInProgress(false)
-            val appContext = context?.applicationContext
-            if (appContext != null) {
-                HistoryLogger.logWriteError(
-                    appContext,
-                    message,
-                    pendingWriteRequest,
-                    rawLog,
-                    resultMessage,
-                    rawLogText
-                )
+            if (batchResult?.resumed == true) {
+                writeView?.setWritingInProgress(true)
+            } else {
+                writeView?.setWritingInProgress(false)
+            }
+            if (batchResult?.resumed != true) {
+                val appContext = context?.applicationContext
+                if (appContext != null) {
+                    HistoryLogger.logWriteError(
+                        appContext,
+                        message,
+                        currentRequest,
+                        rawLog,
+                        resultMessage,
+                        rawLogText
+                    )
+                }
             }
             refreshHistory()
-            pendingWriteRequest = null
+            if (batchResult?.resumed != true) {
+                pendingWriteRequest = null
+            }
         }
 
         override fun onWriteStopped() {
@@ -406,6 +467,7 @@ class TabFragment : Fragment() {
             writeView?.showResultMessage(resultMessage)
             writeView?.showRawLog(rawPlaceholder)
             writeView?.setWritingInProgress(false)
+            batchWriteState = null
             val request = pendingWriteRequest
             if (request != null) {
                 val appContext = context?.applicationContext
@@ -428,6 +490,7 @@ class TabFragment : Fragment() {
             writeView?.showResultMessage(resultMessage)
             writeView?.showRawLog(rawPlaceholder)
             writeView?.setWritingInProgress(false)
+            batchWriteState = null
             val appContext = context?.applicationContext
             if (appContext != null) {
                 HistoryLogger.logWriteError(
@@ -525,6 +588,8 @@ class TabFragment : Fragment() {
         private const val KEY_MANUAL = "manual"
         private const val KEY_HISTORY = "history"
         private const val FELICA_BLOCK_SIZE = 16
+        private const val FULL_DUMP_BLOCK_COUNT = 0xFF
+        private val FULL_DUMP_BLOCKS = (0 until FULL_DUMP_BLOCK_COUNT).toList()
 
         fun newInstance(content: TabContent): TabFragment = TabFragment().apply {
             arguments = bundleOf(
@@ -606,6 +671,127 @@ class TabFragment : Fragment() {
         }
     }
 
+    private fun startFullDumpRead() {
+        val activity = activity ?: return
+        val state = fullDumpState ?: FullDumpState(FULL_DUMP_BLOCKS).also { fullDumpState = it }
+        val remainingBlocks = state.remainingBlocks()
+        if (remainingBlocks.isEmpty()) {
+            readView?.showResultMessage(getString(R.string.read_result_full_dump_complete))
+            updateFullDumpControls(state)
+            return
+        }
+        pendingReadRequest = ReadRequestMetadata(
+            remainingBlocks,
+            true,
+            ReadRequestType.FULL_DUMP
+        )
+        val progressMessage = getString(
+            R.string.read_result_full_dump_progress,
+            state.completedBlocks,
+            state.blockNumbers.size
+        )
+        readView?.showResultMessage(progressMessage)
+        readView?.showRawLog(getString(R.string.read_raw_log_placeholder))
+        readView?.setReadingInProgress(true)
+        readController.startReading(activity, remainingBlocks, true, readListener)
+    }
+
+    private fun resetFullDumpState() {
+        fullDumpState = null
+        updateFullDumpControls()
+    }
+
+    private fun handleFullDumpSuccess(result: ReadController.ReadResult): ReadController.ReadResult? {
+        val state = fullDumpState ?: FullDumpState(FULL_DUMP_BLOCKS).also { fullDumpState = it }
+        state.appendResult(result)
+        return if (state.isComplete()) {
+            val payload = state.buildBlockData()
+            val aggregated = result.copy(
+                blockNumbers = state.blockNumbers,
+                blockData = payload
+            )
+            resetFullDumpState()
+            aggregated
+        } else {
+            updateFullDumpControls(state)
+            val progressText = getString(
+                R.string.read_result_full_dump_progress,
+                state.completedBlocks,
+                state.blockNumbers.size
+            )
+            readView?.showResultMessage(progressText)
+            readView?.showRawLog(formatRawLog(result.rawExchanges))
+            readView?.setReadingInProgress(false)
+            null
+        }
+    }
+
+    private fun handleFullDumpError(partialResult: ReadController.PartialReadResult?): String? {
+        val state = fullDumpState ?: FullDumpState(FULL_DUMP_BLOCKS).also { fullDumpState = it }
+        if (partialResult != null && partialResult.blockData.isNotEmpty()) {
+            state.appendPartial(partialResult)
+        }
+        updateFullDumpControls(state)
+        return getString(
+            R.string.read_result_full_dump_progress,
+            state.completedBlocks,
+            state.blockNumbers.size
+        )
+    }
+
+    private fun updateFullDumpControls(state: FullDumpState? = fullDumpState) {
+        val view = readView ?: return
+        val activeState = state
+        if (activeState == null || activeState.completedBlocks == 0) {
+            view.setFullDumpButtonText(R.string.read_action_full_dump)
+            view.setFullDumpResetEnabled(false)
+        } else {
+            view.setFullDumpButtonText(
+                R.string.read_action_full_dump_resume,
+                activeState.completedBlocks,
+                activeState.blockNumbers.size
+            )
+            view.setFullDumpResetEnabled(true)
+        }
+        view.setFullDumpButtonEnabled(true)
+    }
+
+    private data class BatchWriteErrorState(val progressMessage: String, val resumed: Boolean)
+
+    private fun handleBatchWriteError(
+        request: WriteController.WriteRequest?,
+        completedPayloads: Int
+    ): BatchWriteErrorState? {
+        val state = batchWriteState ?: return null
+        if (request !is WriteController.WriteRequest.RawBlockBatch) {
+            batchWriteState = null
+            return null
+        }
+        val safeCompleted = completedPayloads.coerceIn(0, request.blocks.size)
+        if (safeCompleted > 0) {
+            state.completedBlocks = (state.completedBlocks + safeCompleted).coerceAtMost(state.totalBlocks)
+        }
+        val remainingBlocks = request.blocks.drop(safeCompleted)
+        val progressMessage = getString(
+            R.string.write_result_batch_progress,
+            state.completedBlocks,
+            state.totalBlocks
+        )
+        if (remainingBlocks.isEmpty()) {
+            batchWriteState = null
+            pendingWriteRequest = null
+            return BatchWriteErrorState(progressMessage, resumed = false)
+        }
+        pendingWriteRequest = WriteController.WriteRequest.RawBlockBatch(remainingBlocks)
+        val activity = activity
+        return if (activity != null) {
+            writeController.startWriting(activity, pendingWriteRequest!!, writeListener)
+            BatchWriteErrorState(progressMessage, resumed = true)
+        } else {
+            BatchWriteErrorState(progressMessage, resumed = false)
+        }
+    }
+
     private fun handleHexImportResult(uri: Uri?) {
         if (uri == null) {
             showToast(getString(R.string.write_import_hex_cancelled))
@@ -642,6 +828,7 @@ class TabFragment : Fragment() {
         }
         val request = WriteController.WriteRequest.RawBlockBatch(blocks)
         pendingWriteRequest = request
+        batchWriteState = BatchWriteState(blocks.size)
         writeView?.showResultMessage(
             getString(
                 R.string.write_import_hex_ready,
@@ -672,8 +859,43 @@ class TabFragment : Fragment() {
     }
 
 
+    private class FullDumpState(
+        val blockNumbers: List<Int>
+    ) {
+        private val buffer = ByteArrayOutputStream()
+        var completedBlocks: Int = 0
+            private set
+
+        fun remainingBlocks(): List<Int> = blockNumbers.drop(completedBlocks)
+
+        fun appendResult(result: ReadController.ReadResult) {
+            buffer.write(result.blockData)
+            completedBlocks += result.blockNumbers.size
+        }
+
+        fun appendPartial(partial: ReadController.PartialReadResult) {
+            buffer.write(partial.blockData)
+            completedBlocks += partial.blockData.size / FELICA_BLOCK_SIZE
+        }
+
+        fun isComplete(): Boolean = completedBlocks >= blockNumbers.size
+
+        fun buildBlockData(): ByteArray = buffer.toByteArray()
+    }
+
+    private data class BatchWriteState(
+        val totalBlocks: Int,
+        var completedBlocks: Int = 0
+    )
+
+    private enum class ReadRequestType {
+        STANDARD,
+        FULL_DUMP
+    }
+
     private data class ReadRequestMetadata(
         val blockNumbers: List<Int>,
-        val readBlocks: Boolean
+        val readBlocks: Boolean,
+        val type: ReadRequestType
     )
 }
