@@ -17,8 +17,12 @@
     <string name="read_result_waiting_for_tag">Ready. Hold the card near the device.</string>
     <string name="read_result_no_nfc">NFC is unavailable on this device.</string>
     <string name="read_result_error">Read failed: %1$s</string>
-    <string name="read_result_success">IDm: %1$s\nPMm: %2$s\nSystem codes: %3$s\nService codes: %4$s\nLast error command: %5$s</string>
+    <string name="read_result_success">IDm: %1$s\nPMm: %2$s\nSystem codes: %3$s\nService codes: %4$s\n%5$s</string>
     <string name="read_result_no_blocks">No blocks were requested.</string>
+    <string name="read_result_last_error_command">Last error command: %1$s</string>
+    <string name="read_result_blocks">Blocks:\n%1$s</string>
+    <string name="read_result_block_entry">Block %1$d: %2$s</string>
+    <string name="read_result_no_block_payload">No block data was returned.</string>
     <string name="raw_data_unavailable">Unavailable</string>
     <string name="raw_log_entry">%1$s\nREQ: %2$s\nRES: %3$s</string>
     <string name="read_raw_log_label">Raw Log</string>
@@ -88,9 +92,7 @@
     <string name="history_operation_write">Write</string>
     <string name="history_empty_summary_fallback">No details provided.</string>
     <string name="history_empty_raw_fallback">Raw data unavailable.</string>
-    <string name="history_action_copy">Copy</string>
     <string name="history_action_delete">Delete</string>
     <string name="history_action_clear_all">Clear All</string>
     <string name="history_action_export_hex">Export .hex</string>
-    <string name="history_copy_confirmation">History entry copied.</string>
 </resources>

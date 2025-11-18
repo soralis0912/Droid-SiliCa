@@ -31,6 +31,7 @@ import org.soralis.droidsillica.ui.tab.view.WriteView
 import org.soralis.droidsillica.ui.tab.view.toTabUiComponents
 import org.soralis.droidsillica.util.HistoryLogger
 import org.soralis.droidsillica.util.SystemBlockHexCodec
+import org.soralis.droidsillica.util.toLegacyHexString
 
 class TabFragment : Fragment() {
 
@@ -198,11 +199,7 @@ class TabFragment : Fragment() {
         }
 
         override fun onReadSuccess(result: ReadController.ReadResult) {
-            val commandText = if (result.lastErrorCommand.isNotEmpty()) {
-                result.formattedCommand
-            } else {
-                getString(R.string.read_result_no_blocks)
-            }
+            val blockSummary = formatBlockSummary(result)
             val rawLogText = formatRawLog(result.rawExchanges)
             val systemCodesText = formatCodeList(
                 result.systemCodes,
@@ -218,7 +215,7 @@ class TabFragment : Fragment() {
                 result.formattedPmm,
                 systemCodesText,
                 serviceCodesText,
-                commandText
+                blockSummary
             )
             readView?.showResultMessage(resultMessage)
             readView?.showRawLog(rawLogText)
@@ -460,6 +457,32 @@ class TabFragment : Fragment() {
         }
     }
 
+    private fun formatBlockSummary(result: ReadController.ReadResult): String {
+        if (result.lastErrorCommand.isNotEmpty()) {
+            val commandText = result.formattedCommand.ifEmpty {
+                getString(R.string.raw_data_unavailable)
+            }
+            return getString(R.string.read_result_last_error_command, commandText)
+        }
+        if (result.blockNumbers.isEmpty() || result.blockData.isEmpty()) {
+            return getString(R.string.read_result_no_blocks)
+        }
+        val blockLines = result.blockNumbers.mapIndexedNotNull { index, blockNumber ->
+            val start = index * FELICA_BLOCK_SIZE
+            val end = start + FELICA_BLOCK_SIZE
+            if (start < 0 || end > result.blockData.size) {
+                null
+            } else {
+                val payload = result.blockData.copyOfRange(start, end).toLegacyHexString()
+                getString(R.string.read_result_block_entry, blockNumber, payload)
+            }
+        }
+        if (blockLines.isEmpty()) {
+            return getString(R.string.read_result_no_block_payload)
+        }
+        return getString(R.string.read_result_blocks, blockLines.joinToString("\n"))
+    }
+
     companion object {
         private const val ARG_KEY = "arg_key"
         private const val ARG_TITLE = "arg_title"
@@ -469,6 +492,7 @@ class TabFragment : Fragment() {
         private const val KEY_WRITE = "write"
         private const val KEY_MANUAL = "manual"
         private const val KEY_HISTORY = "history"
+        private const val FELICA_BLOCK_SIZE = 16
 
         fun newInstance(content: TabContent): TabFragment = TabFragment().apply {
             arguments = bundleOf(

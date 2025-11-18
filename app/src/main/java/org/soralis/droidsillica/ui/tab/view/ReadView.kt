@@ -36,23 +36,26 @@ class ReadView(
 
     private fun handleStart() {
         val shouldReadLastError = readBinding.readLastErrorCheckbox.isChecked
-        val blockNumbers = if (shouldReadLastError) {
-            selectedBlockNumbers() ?: return
+        val manualBlocks = if (readBinding.readIncludeBlocksCheckbox.isChecked) {
+            parseManualBlockInput()?.distinct() ?: return
         } else {
             emptyList()
         }
+        val shouldReadBlocks = shouldReadLastError || manualBlocks.isNotEmpty()
         val context = readBinding.root.context
         readBinding.readResultText.text = when {
-            !shouldReadLastError -> context.getString(R.string.read_result_starting_basic)
-            blockNumbers.isEmpty() -> context.getString(R.string.read_result_starting_default)
-            else -> context.getString(
+            manualBlocks.isNotEmpty() -> context.getString(
                 R.string.read_result_starting,
-                blockNumbers.joinToString(", ")
+                manualBlocks.joinToString(", ")
+            )
+            shouldReadLastError -> context.getString(R.string.read_result_starting_default)
+            else -> context.getString(
+                R.string.read_result_starting_basic
             )
         }
         readBinding.readRawLogText.text = context.getString(R.string.read_raw_log_placeholder)
         setReadingInProgress(true)
-        callbacks?.onStartReading(blockNumbers, shouldReadLastError)
+        callbacks?.onStartReading(manualBlocks, shouldReadBlocks)
     }
 
     private fun handleStop() {
@@ -60,14 +63,6 @@ class ReadView(
             readBinding.root.context.getString(R.string.read_result_stopped)
         setReadingInProgress(false)
         callbacks?.onStopReading()
-    }
-
-    private fun selectedBlockNumbers(): List<Int>? {
-        if (!readBinding.readIncludeBlocksCheckbox.isChecked) {
-            return emptyList()
-        }
-        val manualBlocks = parseManualBlockInput() ?: return null
-        return manualBlocks.distinct()
     }
 
     private fun parseManualBlockInput(): List<Int>? {

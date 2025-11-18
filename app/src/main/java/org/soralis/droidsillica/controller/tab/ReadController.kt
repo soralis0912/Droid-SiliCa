@@ -253,14 +253,7 @@ class ReadController {
             )
         }
         val blockData = response.copyOfRange(payloadOffset, payloadOffset + payloadLength)
-        val commandLength = if (blockData.isNotEmpty()) blockData[0].toPositiveInt() else 0
-        val maxCommandSize = if (blockData.size > 1) blockData.size - 1 else 0
-        val safeLength = commandLength.coerceIn(0, maxCommandSize)
-        val lastCommand = if (safeLength > 0) {
-            blockData.copyOfRange(1, 1 + safeLength)
-        } else {
-            ByteArray(0)
-        }
+        val lastCommand = extractLastErrorCommand(blockNumbers, blockData)
         return ReadResult(
             idm = idm,
             pmm = pmm,
@@ -434,12 +427,39 @@ class ReadController {
             }
             val serviceCode =
                 response[offset].toPositiveInt() or (response[offset + 1].toPositiveInt() shl 8)
-            codes += serviceCode
+            if (serviceCode == 0xFFFF && codes.isNotEmpty()) {
+                break
+            }
+            if (!codes.contains(serviceCode)) {
+                codes += serviceCode
+            } else {
+                break
+            }
         }
         return codes
     }
 
     private fun Byte.toPositiveInt(): Int = toInt() and 0xFF
+
+    private fun extractLastErrorCommand(
+        blockNumbers: List<Int>,
+        blockData: ByteArray
+    ): ByteArray {
+        if (blockNumbers != DEFAULT_BLOCKS || blockData.isEmpty()) {
+            return ByteArray(0)
+        }
+        val commandLength = blockData[0].toPositiveInt()
+        val maxCommandSize = (blockData.size - 1).coerceAtLeast(0)
+        if (maxCommandSize == 0) {
+            return ByteArray(0)
+        }
+        val safeLength = commandLength.coerceIn(0, maxCommandSize)
+        return if (safeLength > 0) {
+            blockData.copyOfRange(1, 1 + safeLength)
+        } else {
+            ByteArray(0)
+        }
+    }
 
     companion object {
         private const val KEY = "read"

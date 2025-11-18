@@ -1,12 +1,8 @@
 package org.soralis.droidsillica.ui.tab.view
 
-import android.content.ClipData
-import android.content.ClipboardManager
-import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.TextView
-import android.widget.Toast
 import androidx.core.view.isVisible
 import java.text.DateFormat
 import java.util.Date
@@ -72,9 +68,6 @@ class HistoryView(
             }
             entryBinding.historyEntryResult.text = resultDetail
             entryBinding.historyEntryRaw.text = rawDetail
-            entryBinding.buttonCopyHistory.setOnClickListener {
-                copyEntry(entry, operationLabel, statusLabel, timestamp, resultDetail, rawDetail)
-            }
             val canExport = exportableTimestamps.contains(entry.timestamp)
             entryBinding.buttonExportHistory.isVisible = canExport
             if (canExport) {
@@ -109,26 +102,4 @@ class HistoryView(
         }
     }
 
-    private fun copyEntry(
-        entry: HistoryLogger.HistoryLogEntry,
-        operationLabel: String,
-        statusLabel: String,
-        timestamp: String,
-        resultDetail: String,
-        rawDetail: String
-    ) {
-        val context = binding.root.context
-        val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
-        val summary = buildString {
-            appendLine("Operation: $operationLabel")
-            appendLine("Status: $statusLabel")
-            appendLine("Timestamp: $timestamp")
-            appendLine("Summary: ${entry.summary}")
-            appendLine("Result: $resultDetail")
-            append("Raw: $rawDetail")
-        }
-        clipboard?.setPrimaryClip(ClipData.newPlainText("History Entry", summary))
-        Toast.makeText(context, context.getString(R.string.history_copy_confirmation), Toast.LENGTH_SHORT)
-            .show()
-    }
 }

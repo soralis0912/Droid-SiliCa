@@ -18,6 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+            android:textIsSelectable="true"
             android:textStyle="bold"
             android:text="Title"
             tools:ignore="HardcodedText" />
@@ -29,6 +30,7 @@
             android:layout_marginTop="8dp"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
             android:textColor="?android:textColorPrimary"
+            android:textIsSelectable="true"
             android:text="Result"
             tools:ignore="HardcodedText" />
 
@@ -39,6 +41,7 @@
             android:layout_marginTop="4dp"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
             android:textColor="?android:textColorSecondary"
+            android:textIsSelectable="true"
             android:text="Raw"
             tools:ignore="HardcodedText" />
 
@@ -54,13 +57,6 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/history_action_export_hex" />
-
-            <Button
-                android:id="@+id/buttonCopyHistory"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:text="@string/history_action_copy" />
 
             <Button
                 android:id="@+id/buttonDeleteHistory"
