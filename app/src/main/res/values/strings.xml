@@ -48,6 +48,7 @@
     <string name="write_raw_data_hint">Block data (32 hex chars)</string>
     <string name="write_action_start">Start Writing</string>
     <string name="write_action_stop">Cancel</string>
+    <string name="write_action_randomize">Randomize</string>
     <string name="write_result_label">Status</string>
     <string name="write_result_placeholder">Select a command and press Start to write.</string>
     <string name="write_result_waiting">Ready. Hold the tag to the device to write.</string>

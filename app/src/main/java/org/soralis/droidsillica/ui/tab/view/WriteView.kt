@@ -3,6 +3,7 @@ package org.soralis.droidsillica.ui.tab.view
 import android.widget.ArrayAdapter
 import androidx.core.view.isVisible
 import com.google.android.material.textfield.TextInputLayout
+import java.security.SecureRandom
 import java.util.Locale
 import org.soralis.droidsillica.R
 import org.soralis.droidsillica.controller.tab.WriteController
@@ -27,11 +28,14 @@ class WriteView(
     }
 
     private var currentOption: CommandOption = CommandOption.IDM
+    private val secureRandom = SecureRandom()
 
     init {
         setupCommandDropdown()
         binding.writeStartButton.setOnClickListener { handleStart() }
         binding.writeCancelButton.setOnClickListener { handleCancel() }
+        binding.writeIdmRandomButton.setOnClickListener { randomizeIdm() }
+        binding.writePmmRandomButton.setOnClickListener { randomizePmm() }
         showOption(currentOption)
         binding.writeResultText.text =
             binding.root.context.getString(R.string.write_result_placeholder)
@@ -221,6 +225,8 @@ class WriteView(
         binding.writeCommandDropdown.isEnabled = enabled
         binding.writeIdmInputLayout.isEnabled = enabled
         binding.writePmmInputLayout.isEnabled = enabled
+        binding.writeIdmRandomButton.isEnabled = enabled
+        binding.writePmmRandomButton.isEnabled = enabled
         binding.writeSystemCodesLayout.isEnabled = enabled
         binding.writeServiceCodesLayout.isEnabled = enabled
         binding.writeBlockNumberLayout.isEnabled = enabled
@@ -246,10 +252,33 @@ class WriteView(
         binding.writeRawDataLayout.error = null
     }
 
+    private fun randomizeIdm() {
+        binding.writeIdmInput.setText(generateRandomHex(IDM_BYTE_LENGTH))
+        binding.writeIdmInputLayout.error = null
+    }
+
+    private fun randomizePmm() {
+        binding.writePmmInput.setText(generateRandomHex(PMM_BYTE_LENGTH))
+        binding.writePmmInputLayout.error = null
+    }
+
+    private fun generateRandomHex(byteLength: Int): String {
+        val buffer = ByteArray(byteLength)
+        secureRandom.nextBytes(buffer)
+        return buffer.joinToString(separator = "") { byte ->
+            String.format(Locale.US, "%02X", byte.toInt() and 0xFF)
+        }
+    }
+
     private fun showOption(option: CommandOption) {
         binding.writeIdmGroup.isVisible = option == CommandOption.IDM
         binding.writeSystemGroup.isVisible = option == CommandOption.SYSTEM
         binding.writeServiceGroup.isVisible = option == CommandOption.SERVICE
         binding.writeRawGroup.isVisible = option == CommandOption.RAW
+    }
+
+    companion object {
+        private const val IDM_BYTE_LENGTH = 8
+        private const val PMM_BYTE_LENGTH = 8
     }
 }

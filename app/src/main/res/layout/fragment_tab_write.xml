@@ -81,6 +81,7 @@
                         android:id="@+id/writeCommandDropdown"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
+                        android:dropDownWidth="match_parent"
                         android:inputType="none"
                         android:importantForAutofill="no"
                         tools:text="@string/write_command_idm" />
@@ -94,40 +95,70 @@
                     android:orientation="vertical"
                     tools:visibility="visible">
 
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/writeIdmInputLayout"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="@string/write_idm_hint">
+                        android:orientation="horizontal">
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/writeIdmInput"
-                            android:layout_width="match_parent"
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/writeIdmInputLayout"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:inputType="textVisiblePassword"
-                            android:maxLines="1"
-                            android:textAllCaps="true"
-                            tools:text="0123456789ABCDEF" />
-                    </com.google.android.material.textfield.TextInputLayout>
+                            android:layout_weight="1"
+                            android:hint="@string/write_idm_hint">
 
-                    <com.google.android.material.textfield.TextInputLayout
-                        android:id="@+id/writePmmInputLayout"
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/writeIdmInput"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textVisiblePassword"
+                                android:maxLines="1"
+                                android:textAllCaps="true"
+                                tools:text="0123456789ABCDEF" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/writeIdmRandomButton"
+                            style="@style/Widget.MaterialComponents.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="@string/write_action_randomize" />
+                    </LinearLayout>
+
+                    <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:hint="@string/write_pmm_hint">
+                        android:orientation="horizontal">
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/writePmmInput"
-                            android:layout_width="match_parent"
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/writePmmInputLayout"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:inputType="textVisiblePassword"
-                            android:maxLines="1"
-                            android:textAllCaps="true"
-                            tools:text="0001FFFFFFFFFFFF" />
-                    </com.google.android.material.textfield.TextInputLayout>
+                            android:layout_weight="1"
+                            android:hint="@string/write_pmm_hint">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/writePmmInput"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textVisiblePassword"
+                                android:maxLines="1"
+                                android:textAllCaps="true"
+                                tools:text="0001FFFFFFFFFFFF" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/writePmmRandomButton"
+                            style="@style/Widget.MaterialComponents.Button.TextButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:text="@string/write_action_randomize" />
+                    </LinearLayout>
                 </LinearLayout>
 
                 <LinearLayout
