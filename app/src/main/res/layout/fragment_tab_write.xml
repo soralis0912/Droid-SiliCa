@@ -23,7 +23,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
-                tools:text="Write" />
+                tools:text="書き込み" />
 
             <TextView
                 android:id="@+id/tabDescription"
@@ -31,7 +31,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body1"
-                tools:text="Compose outbound updates or broadcast commands." />
+                tools:text="カードをタップして書き込みます" />
 
             <LinearLayout
                 android:id="@+id/actionList"
@@ -39,15 +39,8 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:orientation="vertical"
-                tools:ignore="UseCompoundDrawables">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="• Placeholder action"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    tools:ignore="HardcodedText" />
-            </LinearLayout>
+                android:visibility="gone"
+                tools:ignore="UseCompoundDrawables" />
 
             <LinearLayout
                 android:id="@+id/writeControls"
@@ -55,19 +48,6 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:orientation="vertical">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/write_controls_title"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:text="@string/write_controls_description"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
 
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/writeCommandLayout"
@@ -95,70 +75,58 @@
                     android:orientation="vertical"
                     tools:visibility="visible">
 
-                    <LinearLayout
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/writeIdmInputLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="horizontal">
+                        android:hint="@string/write_idm_hint">
 
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/writeIdmInputLayout"
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                            android:layout_width="0dp"
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/writeIdmInput"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:hint="@string/write_idm_hint">
+                            android:inputType="textVisiblePassword"
+                            android:maxLines="1"
+                            android:textAllCaps="true"
+                            tools:text="0123456789ABCDEF" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/writeIdmInput"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="textVisiblePassword"
-                                android:maxLines="1"
-                                android:textAllCaps="true"
-                                tools:text="0123456789ABCDEF" />
-                        </com.google.android.material.textfield.TextInputLayout>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/writeIdmRandomButton"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end"
+                        android:visibility="gone"
+                        android:text="@string/write_action_randomize" />
 
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/writeIdmRandomButton"
-                            style="@style/Widget.MaterialComponents.Button.TextButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:text="@string/write_action_randomize" />
-                    </LinearLayout>
-
-                    <LinearLayout
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/writePmmInputLayout"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:orientation="horizontal">
+                        android:hint="@string/write_pmm_hint">
 
-                        <com.google.android.material.textfield.TextInputLayout
-                            android:id="@+id/writePmmInputLayout"
-                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                            android:layout_width="0dp"
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/writePmmInput"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:hint="@string/write_pmm_hint">
+                            android:inputType="textVisiblePassword"
+                            android:maxLines="1"
+                            android:textAllCaps="true"
+                            tools:text="0001FFFFFFFFFFFF" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
-                            <com.google.android.material.textfield.TextInputEditText
-                                android:id="@+id/writePmmInput"
-                                android:layout_width="match_parent"
-                                android:layout_height="wrap_content"
-                                android:inputType="textVisiblePassword"
-                                android:maxLines="1"
-                                android:textAllCaps="true"
-                                tools:text="0001FFFFFFFFFFFF" />
-                        </com.google.android.material.textfield.TextInputLayout>
-
-                        <com.google.android.material.button.MaterialButton
-                            android:id="@+id/writePmmRandomButton"
-                            style="@style/Widget.MaterialComponents.Button.TextButton"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:text="@string/write_action_randomize" />
-                    </LinearLayout>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/writePmmRandomButton"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end"
+                        android:visibility="gone"
+                        android:text="@string/write_action_randomize" />
                 </LinearLayout>
 
                 <LinearLayout
@@ -302,6 +270,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
+                    android:visibility="gone"
                     android:text="@string/write_action_hex_file" />
 
                 <TextView
@@ -333,6 +302,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="12dp"
+                    android:visibility="gone"
                     android:text="@string/write_raw_log_label"
                     android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
 
@@ -340,6 +310,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
+                    android:visibility="gone"
                     app:cardUseCompatPadding="true">
 
                     <TextView
