@@ -467,7 +467,7 @@ class ReadController {
         var offset = payloadOffset + 1
         repeat(codeCount) {
             if (offset + 1 >= response.size) return@repeat
-            val code = response[offset].toPositiveInt() or (response[offset + 1].toPositiveInt() shl 8)
+            val code = (response[offset].toPositiveInt() shl 8) or response[offset + 1].toPositiveInt()
             codes += code
             offset += 2
         }
