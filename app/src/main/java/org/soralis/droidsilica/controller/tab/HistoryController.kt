@@ -7,9 +7,7 @@ import org.soralis.droidsilica.util.HistoryLogger
 class HistoryController {
     fun getContent(): TabContent = TabContent(
         key = "history",
-        title = "History",
-        description = "View the most recent NFC read/write operations.",
-        actions = emptyList()
+        title = "History"
     )
 
     fun getHistory(context: Context): List<HistoryLogger.HistoryLogEntry> =

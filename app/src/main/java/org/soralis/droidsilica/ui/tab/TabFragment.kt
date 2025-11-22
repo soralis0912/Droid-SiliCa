@@ -100,14 +100,10 @@ class TabFragment : Fragment() {
                 ?: args.getBoolean(ARG_EXPERT_MODE, false)
         val key = args.getString(ARG_KEY).orEmpty()
         val title = args.getString(ARG_TITLE).orEmpty()
-        val description = args.getString(ARG_DESCRIPTION).orEmpty()
-        val actions = args.getStringArray(ARG_ACTIONS)?.toList().orEmpty()
 
         val content = TabContent(
             key = key,
-            title = title,
-            description = description,
-            actions = actions
+            title = title
         )
 
         tabView = createTabView(content.key)
@@ -602,8 +598,6 @@ class TabFragment : Fragment() {
     companion object {
         private const val ARG_KEY = "arg_key"
         private const val ARG_TITLE = "arg_title"
-        private const val ARG_DESCRIPTION = "arg_description"
-        private const val ARG_ACTIONS = "arg_actions"
         private const val ARG_EXPERT_MODE = "arg_expert_mode"
         private const val STATE_EXPERT_MODE = "state_expert_mode"
         private const val KEY_READ = "read"
@@ -618,8 +612,6 @@ class TabFragment : Fragment() {
             arguments = bundleOf(
                 ARG_KEY to content.key,
                 ARG_TITLE to content.title,
-                ARG_DESCRIPTION to content.description,
-                ARG_ACTIONS to content.actions.toTypedArray(),
                 ARG_EXPERT_MODE to expertModeEnabled
             )
         }

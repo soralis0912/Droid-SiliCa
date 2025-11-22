@@ -1,6 +1,5 @@
 package org.soralis.droidsilica.ui.tab.view
 
-import android.view.LayoutInflater
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -16,21 +15,8 @@ open class BaseTabView(
 
     override fun render(content: TabContent) {
         ui.tabTitle.text = content.title
-        ui.tabDescription.text = content.description
-        renderActions(content.actions)
-    }
-
-    protected fun renderActions(actions: List<String>) {
-        val container = ui.actionList
-        container.removeAllViews()
-        val inflater = LayoutInflater.from(container.context)
-        actions.forEachIndexed { index, action ->
-            val actionView =
-                inflater.inflate(android.R.layout.simple_list_item_1, container, false) as TextView
-            actionView.text = "${index + 1}. $action"
-            container.addView(actionView)
-        }
-        container.visibility = if (actions.isEmpty()) View.GONE else View.VISIBLE
+        ui.tabDescription.visibility = View.GONE
+        ui.actionList.visibility = View.GONE
     }
 }
 

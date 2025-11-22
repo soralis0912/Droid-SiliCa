@@ -6,7 +6,5 @@ package org.soralis.droidsilica.model
 data class TabContent(
     val key: String,
     val title: String,
-    val description: String,
-    val actions: List<String>,
     val requiresExpert: Boolean = false
 )

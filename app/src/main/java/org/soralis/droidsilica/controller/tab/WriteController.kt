@@ -55,13 +55,7 @@ class WriteController {
 
     fun getContent(): TabContent = TabContent(
         key = KEY,
-        title = "Write",
-        description = "Update the SiliCa IDm/PMm, system codes, service codes or raw system blocks.",
-        actions = listOf(
-            "Mirrors the CLI write.py workflow: IDm/PMm, system codes, service codes, or raw block data.",
-            "Validates the provided hex before entering NFC-F writer mode.",
-            "Hold a compatible SiliCa card to dispatch the Write Without Encryption command."
-        )
+        title = "Write"
     )
 
     fun startWriting(activity: Activity, request: WriteRequest, listener: Listener) {

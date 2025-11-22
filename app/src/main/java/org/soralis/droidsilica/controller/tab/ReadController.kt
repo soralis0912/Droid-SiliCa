@@ -78,13 +78,7 @@ class ReadController {
 
     fun getContent(): TabContent = TabContent(
         key = KEY,
-        title = "Read",
-        description = "Read the SiliCa system block via NFC-F and inspect the last error command.",
-        actions = listOf(
-            "Tap a compatible SiliCa card; we wrap the 0x06 Read Without Encryption command.",
-            "Blocks 0xE0/0xE1 are retrieved from service 0xFFFF and parsed like the CLI tool.",
-            "The bytes are exposed as uppercase hex (\"AA BB CC\") for troubleshooting."
-        )
+        title = "Read"
     )
 
     /**
