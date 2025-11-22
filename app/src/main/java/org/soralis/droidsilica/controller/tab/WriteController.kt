@@ -186,10 +186,11 @@ class WriteController {
             is WriteRequest.SystemCodes -> {
                 val payload = ByteArray(BLOCK_SIZE)
                 var offset = 0
+                // SiliCa system block expects system codes in little-endian order
                 request.codes.forEach { code ->
                     if (offset + 1 >= payload.size) return@forEach
-                    payload[offset++] = ((code shr 8) and 0xFF).toByte()
                     payload[offset++] = (code and 0xFF).toByte()
+                    payload[offset++] = ((code shr 8) and 0xFF).toByte()
                 }
                 listOf(WriteRequest.RawBlockPayload(BLOCK_SYSTEM_CODES, payload))
             }
