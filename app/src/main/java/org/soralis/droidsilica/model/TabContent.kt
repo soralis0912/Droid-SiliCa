@@ -1,4 +1,4 @@
-package org.soralis.droidsillica.model
+package org.soralis.droidsilica.model
 
 /**
  * Immutable model that describes the content for one tab in the MVC layout.

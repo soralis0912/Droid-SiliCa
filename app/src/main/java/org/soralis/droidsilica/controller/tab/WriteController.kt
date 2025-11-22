@@ -1,4 +1,4 @@
-package org.soralis.droidsillica.controller.tab
+package org.soralis.droidsilica.controller.tab
 
 import android.app.Activity
 import android.nfc.NfcAdapter
@@ -9,8 +9,8 @@ import android.os.Looper
 import java.io.IOException
 import java.lang.ref.WeakReference
 import java.util.Locale
-import org.soralis.droidsillica.model.RawExchange
-import org.soralis.droidsillica.model.TabContent
+import org.soralis.droidsilica.model.RawExchange
+import org.soralis.droidsilica.model.TabContent
 
 /**
  * Mirrors the behavior of the legacy write.py script so we can update SiliCa system blocks

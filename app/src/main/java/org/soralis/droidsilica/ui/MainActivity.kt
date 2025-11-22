@@ -1,4 +1,4 @@
-package org.soralis.droidsillica.ui
+package org.soralis.droidsilica.ui
 
 import android.os.Bundle
 import android.view.Menu
@@ -6,11 +6,11 @@ import android.view.MenuItem
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.tabs.TabLayoutMediator
-import org.soralis.droidsillica.R
-import org.soralis.droidsillica.controller.TabController
-import org.soralis.droidsillica.databinding.ActivityMainBinding
-import org.soralis.droidsillica.ui.tab.TabPagerAdapter
-import org.soralis.droidsillica.util.ExpertModeManager
+import org.soralis.droidsilica.R
+import org.soralis.droidsilica.controller.TabController
+import org.soralis.droidsilica.databinding.ActivityMainBinding
+import org.soralis.droidsilica.ui.tab.TabPagerAdapter
+import org.soralis.droidsilica.util.ExpertModeManager
 
 class MainActivity : AppCompatActivity() {
 

@@ -1,4 +1,4 @@
-package org.soralis.droidsillica.util
+package org.soralis.droidsilica.util
 
 import android.content.Context
 

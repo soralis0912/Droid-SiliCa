@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Droid SilliCa</string>
+    <string name="app_name">Droid-SiliCa</string>
     <string name="read_controls_title">Read Options</string>
     <string name="read_controls_description">Select which SiliCa data blocks to capture.</string>
     <string name="read_option_last_error_command">Retrieve last error command</string>

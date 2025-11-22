@@ -1,6 +1,6 @@
-package org.soralis.droidsillica.model
+package org.soralis.droidsilica.model
 
-import org.soralis.droidsillica.util.toLegacyHexString
+import org.soralis.droidsilica.util.toLegacyHexString
 
 data class RawExchange(
     val label: String,

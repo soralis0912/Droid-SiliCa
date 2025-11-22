@@ -1,6 +1,6 @@
-package org.soralis.droidsillica.controller.tab
+package org.soralis.droidsilica.controller.tab
 
-import org.soralis.droidsillica.model.TabContent
+import org.soralis.droidsilica.model.TabContent
 
 class ManualController {
     fun getContent(): TabContent = TabContent(

@@ -1,8 +1,8 @@
-package org.soralis.droidsillica.controller.tab
+package org.soralis.droidsilica.controller.tab
 
 import android.content.Context
-import org.soralis.droidsillica.model.TabContent
-import org.soralis.droidsillica.util.HistoryLogger
+import org.soralis.droidsilica.model.TabContent
+import org.soralis.droidsilica.util.HistoryLogger
 
 class HistoryController {
     fun getContent(): TabContent = TabContent(

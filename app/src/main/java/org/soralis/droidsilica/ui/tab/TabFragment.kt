@@ -1,4 +1,4 @@
-package org.soralis.droidsillica.ui.tab
+package org.soralis.droidsilica.ui.tab
 
 import android.net.Uri
 import android.os.Bundle
@@ -13,26 +13,26 @@ import androidx.fragment.app.Fragment
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.util.Locale
-import org.soralis.droidsillica.R
-import org.soralis.droidsillica.controller.tab.HistoryController
-import org.soralis.droidsillica.controller.tab.ReadController
-import org.soralis.droidsillica.controller.tab.WriteController
-import org.soralis.droidsillica.databinding.FragmentTabHistoryBinding
-import org.soralis.droidsillica.databinding.FragmentTabManualBinding
-import org.soralis.droidsillica.databinding.FragmentTabReadBinding
-import org.soralis.droidsillica.databinding.FragmentTabWriteBinding
-import org.soralis.droidsillica.model.TabContent
-import org.soralis.droidsillica.model.RawExchange
-import org.soralis.droidsillica.ui.tab.view.BaseTabView
-import org.soralis.droidsillica.ui.tab.view.HistoryView
-import org.soralis.droidsillica.ui.tab.view.ManualView
-import org.soralis.droidsillica.ui.tab.view.ReadView
-import org.soralis.droidsillica.ui.tab.view.TabView
-import org.soralis.droidsillica.ui.tab.view.WriteView
-import org.soralis.droidsillica.ui.tab.view.toTabUiComponents
-import org.soralis.droidsillica.util.HistoryLogger
-import org.soralis.droidsillica.util.SystemBlockHexCodec
-import org.soralis.droidsillica.util.toLegacyHexString
+import org.soralis.droidsilica.R
+import org.soralis.droidsilica.controller.tab.HistoryController
+import org.soralis.droidsilica.controller.tab.ReadController
+import org.soralis.droidsilica.controller.tab.WriteController
+import org.soralis.droidsilica.databinding.FragmentTabHistoryBinding
+import org.soralis.droidsilica.databinding.FragmentTabManualBinding
+import org.soralis.droidsilica.databinding.FragmentTabReadBinding
+import org.soralis.droidsilica.databinding.FragmentTabWriteBinding
+import org.soralis.droidsilica.model.TabContent
+import org.soralis.droidsilica.model.RawExchange
+import org.soralis.droidsilica.ui.tab.view.BaseTabView
+import org.soralis.droidsilica.ui.tab.view.HistoryView
+import org.soralis.droidsilica.ui.tab.view.ManualView
+import org.soralis.droidsilica.ui.tab.view.ReadView
+import org.soralis.droidsilica.ui.tab.view.TabView
+import org.soralis.droidsilica.ui.tab.view.WriteView
+import org.soralis.droidsilica.ui.tab.view.toTabUiComponents
+import org.soralis.droidsilica.util.HistoryLogger
+import org.soralis.droidsilica.util.SystemBlockHexCodec
+import org.soralis.droidsilica.util.toLegacyHexString
 
 class TabFragment : Fragment() {
 

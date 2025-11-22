@@ -1,10 +1,10 @@
-package org.soralis.droidsillica.controller
+package org.soralis.droidsilica.controller
 
-import org.soralis.droidsillica.controller.tab.HistoryController
-import org.soralis.droidsillica.controller.tab.ManualController
-import org.soralis.droidsillica.controller.tab.ReadController
-import org.soralis.droidsillica.controller.tab.WriteController
-import org.soralis.droidsillica.model.TabContent
+import org.soralis.droidsilica.controller.tab.HistoryController
+import org.soralis.droidsilica.controller.tab.ManualController
+import org.soralis.droidsilica.controller.tab.ReadController
+import org.soralis.droidsilica.controller.tab.WriteController
+import org.soralis.droidsilica.model.TabContent
 
 /**
  * Acts as the Controller by exposing immutable tab models to the view layer.

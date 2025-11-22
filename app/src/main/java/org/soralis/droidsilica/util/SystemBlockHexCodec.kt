@@ -1,4 +1,4 @@
-package org.soralis.droidsillica.util
+package org.soralis.droidsilica.util
 
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -21,7 +21,7 @@ object SystemBlockHexCodec {
         blocks: List<HistoryLogger.SystemBlockEntry.BlockChunk>
     ): String {
         val builder = StringBuilder()
-        builder.appendLine("# Droid-SilliCa system block export")
+        builder.appendLine("# Droid-SiliCa system block export")
         builder.appendLine("# Timestamp: ${formatTimestamp(timestamp)}")
         builder.appendLine("IDM: ${idm.uppercase(Locale.US)}")
         if (blocks.isNotEmpty()) {

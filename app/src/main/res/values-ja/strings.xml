@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Droid SilliCa</string>
+    <string name="app_name">Droid-SiliCa</string>
     <string name="read_controls_title">読み取りオプション</string>
     <string name="read_controls_description">取得するSiliCaデータブロックを選択してください。</string>
     <string name="read_option_last_error_command">直近のエラーコマンドを取得</string>

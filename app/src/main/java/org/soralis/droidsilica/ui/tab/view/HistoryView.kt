@@ -1,4 +1,4 @@
-package org.soralis.droidsillica.ui.tab.view
+package org.soralis.droidsilica.ui.tab.view
 
 import android.view.LayoutInflater
 import android.view.View
@@ -7,10 +7,10 @@ import androidx.core.view.isVisible
 import java.text.DateFormat
 import java.util.Date
 import java.util.Locale
-import org.soralis.droidsillica.R
-import org.soralis.droidsillica.databinding.FragmentTabHistoryBinding
-import org.soralis.droidsillica.databinding.ItemHistoryEntryBinding
-import org.soralis.droidsillica.util.HistoryLogger
+import org.soralis.droidsilica.R
+import org.soralis.droidsilica.databinding.FragmentTabHistoryBinding
+import org.soralis.droidsilica.databinding.ItemHistoryEntryBinding
+import org.soralis.droidsilica.util.HistoryLogger
 
 class HistoryView(
     private val binding: FragmentTabHistoryBinding,

@@ -1,4 +1,4 @@
-package org.soralis.droidsillica.util
+package org.soralis.droidsilica.util
 
 import android.content.ContentValues
 import android.content.Context
@@ -13,9 +13,9 @@ import java.util.concurrent.Executors
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-import org.soralis.droidsillica.controller.tab.ReadController
-import org.soralis.droidsillica.controller.tab.WriteController
-import org.soralis.droidsillica.model.RawExchange
+import org.soralis.droidsilica.controller.tab.ReadController
+import org.soralis.droidsilica.controller.tab.WriteController
+import org.soralis.droidsilica.model.RawExchange
 import kotlin.text.Charsets
 
 /**

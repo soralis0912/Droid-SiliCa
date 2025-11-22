@@ -1,9 +1,9 @@
-package org.soralis.droidsillica.ui.tab
+package org.soralis.droidsilica.ui.tab
 
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.FragmentActivity
 import androidx.viewpager2.adapter.FragmentStateAdapter
-import org.soralis.droidsillica.model.TabContent
+import org.soralis.droidsilica.model.TabContent
 
 class TabPagerAdapter(
     activity: FragmentActivity,

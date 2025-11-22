@@ -1,14 +1,14 @@
-package org.soralis.droidsillica.ui.tab.view
+package org.soralis.droidsilica.ui.tab.view
 
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
-import org.soralis.droidsillica.databinding.FragmentTabHistoryBinding
-import org.soralis.droidsillica.databinding.FragmentTabManualBinding
-import org.soralis.droidsillica.databinding.FragmentTabReadBinding
-import org.soralis.droidsillica.databinding.FragmentTabWriteBinding
-import org.soralis.droidsillica.model.TabContent
+import org.soralis.droidsilica.databinding.FragmentTabHistoryBinding
+import org.soralis.droidsilica.databinding.FragmentTabManualBinding
+import org.soralis.droidsilica.databinding.FragmentTabReadBinding
+import org.soralis.droidsilica.databinding.FragmentTabWriteBinding
+import org.soralis.droidsilica.model.TabContent
 
 open class BaseTabView(
     private val ui: TabUiComponents

@@ -1,10 +1,10 @@
-package org.soralis.droidsillica.ui.tab.view
+package org.soralis.droidsilica.ui.tab.view
 
 import androidx.annotation.StringRes
 import androidx.core.view.isVisible
-import org.soralis.droidsillica.R
-import org.soralis.droidsillica.databinding.FragmentTabReadBinding
-import org.soralis.droidsillica.model.TabContent
+import org.soralis.droidsilica.R
+import org.soralis.droidsilica.databinding.FragmentTabReadBinding
+import org.soralis.droidsilica.model.TabContent
 
 class ReadView(
     private val readBinding: FragmentTabReadBinding,

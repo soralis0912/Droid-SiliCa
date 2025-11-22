@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.DroidSilliCa" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <style name="Theme.DroidSiliCa" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/md_theme_primary</item>
         <item name="colorPrimaryVariant">@color/md_theme_primary</item>
         <item name="colorOnPrimary">@color/md_theme_on_primary</item>

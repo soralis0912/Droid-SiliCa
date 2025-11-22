@@ -16,5 +16,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "DroidSilliCa"
+rootProject.name = "Droid-SiliCa"
 include(":app")

@@ -1,14 +1,14 @@
-package org.soralis.droidsillica.ui.tab.view
+package org.soralis.droidsilica.ui.tab.view
 
 import android.widget.ArrayAdapter
 import androidx.core.view.isVisible
 import com.google.android.material.textfield.TextInputLayout
 import java.security.SecureRandom
 import java.util.Locale
-import org.soralis.droidsillica.R
-import org.soralis.droidsillica.controller.tab.WriteController
-import org.soralis.droidsillica.databinding.FragmentTabWriteBinding
-import org.soralis.droidsillica.model.TabContent
+import org.soralis.droidsilica.R
+import org.soralis.droidsilica.controller.tab.WriteController
+import org.soralis.droidsilica.databinding.FragmentTabWriteBinding
+import org.soralis.droidsilica.model.TabContent
 
 class WriteView(
     private val binding: FragmentTabWriteBinding,

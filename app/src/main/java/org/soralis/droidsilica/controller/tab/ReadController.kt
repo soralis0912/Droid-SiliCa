@@ -1,4 +1,4 @@
-package org.soralis.droidsillica.controller.tab
+package org.soralis.droidsilica.controller.tab
 
 import android.app.Activity
 import android.nfc.NfcAdapter
@@ -10,9 +10,9 @@ import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.lang.ref.WeakReference
 import java.util.Locale
-import org.soralis.droidsillica.model.RawExchange
-import org.soralis.droidsillica.model.TabContent
-import org.soralis.droidsillica.util.toLegacyHexString
+import org.soralis.droidsilica.model.RawExchange
+import org.soralis.droidsilica.model.TabContent
+import org.soralis.droidsilica.util.toLegacyHexString
 
 /**
  * Mirrors the behavior of the legacy read.py script by issuing FeliCa commands to inspect the

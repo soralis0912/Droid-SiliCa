@@ -4,10 +4,10 @@ plugins {
 }
 
 android {
-    namespace = "org.soralis.droidsillica"
+    namespace = "org.soralis.droidsilica"
     compileSdk = 34
     defaultConfig {
-        applicationId = "org.soralis.droidsillica"
+        applicationId = "org.soralis.droidsilica"
         minSdk = 24
         targetSdk = 34
         versionCode = 1
